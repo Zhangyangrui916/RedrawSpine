@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <renderer.h>
 #include <texture.h>
+#include <SkeletonDrawable.h>
 
 // settings
 unsigned int SCR_WIDTH = 1000;
@@ -54,7 +55,7 @@ int main(int argc, char* argv[]) {
     Renderer::shader = new Shader("C:/code/mask-analyzer/src/test.vs", "C:/code/mask-analyzer/src/test.fs");
     Renderer::shader->use();
 
-    spine::OGLTextureLoader textureLoader;
+    OGLTextureLoader textureLoader;
     spine::Atlas atlas("C:/code/mask-analyzer/build/Debug/data/fake.atlas", (spine::TextureLoader*)&textureLoader);
     spine::AtlasAttachmentLoader attachmentLoader(&atlas);
     spine::SkeletonJson json(&attachmentLoader);

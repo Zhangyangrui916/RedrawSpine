@@ -1,39 +1,12 @@
 #pragma once
 #include <spine/spine.h>
 
-namespace spine {
+class OGLTextureLoader : public spine::TextureLoader {
+public:
+	OGLTextureLoader() = default;
 
-	class SkeletonDrawable {
-	public:
-		SkeletonDrawable(SkeletonData* skeletonData, AnimationStateData* animationStateData = nullptr);
+	void load(spine::AtlasPage& page, const spine::String& path);
 
-		~SkeletonDrawable();
+	void unload(void* texture);
 
-		void update(float delta);
-
-		void draw();
-
-		Skeleton* skeleton;
-		AnimationState* animationState;
-
-	private:
-		bool ownsAnimationStateData;
-		SkeletonClipping clipper;
-		Vector<float> worldVertices;
-		Vector<int> glIndices;
-		Vector<float> glVertices;
-	};
-
-	class OGLTextureLoader : public spine::TextureLoader {
-	public:
-		OGLTextureLoader() = default;
-
-		void load(AtlasPage& page, const String& path);
-
-		void unload(void* texture);
-
-	};
-
-
-
-}
+};
