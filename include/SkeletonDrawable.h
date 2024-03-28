@@ -7,6 +7,8 @@ namespace spine {
 	public:
 		SkeletonDrawable(SkeletonData* skeletonData, AnimationStateData* animationStateData = nullptr);
 
+		SkeletonDrawable(char* skeletonJsonPath, char* atlasPath);
+
 		~SkeletonDrawable();
 
 		void update(float delta);
@@ -17,6 +19,8 @@ namespace spine {
 		AnimationState* animationState;
 
 	private:
+		void init(SkeletonData* skeletonData, AnimationStateData* animationStateData);
+
 		bool ownsAnimationStateData;
 		SkeletonClipping clipper;
 		Vector<float> worldVertices;

@@ -1,16 +1,31 @@
 #include <SkeletonDrawable.h>
 #include <glad/glad.h>
 #include <renderer.h>
+#include <texture.h>
 
 using namespace spine;
 
-SkeletonDrawable::SkeletonDrawable(SkeletonData* skeletonData, AnimationStateData* animationStateData) {
-	Bone::setYDown(true);
+void SkeletonDrawable::init(SkeletonData* skeletonData, AnimationStateData* animationStateData)
+{
 	skeleton = new (__FILE__, __LINE__) Skeleton(skeletonData);
 
 	ownsAnimationStateData = animationStateData == 0;
 	if (ownsAnimationStateData) animationStateData = new (__FILE__, __LINE__) AnimationStateData(skeletonData);
 	animationState = new (__FILE__, __LINE__) AnimationState(animationStateData);
+}
+
+SkeletonDrawable::SkeletonDrawable(SkeletonData* skeletonData, AnimationStateData* animationStateData) {
+	init(skeletonData, animationStateData);
+}
+
+spine::SkeletonDrawable::SkeletonDrawable(char* skeletonJsonPath, char* atlasPath)
+{
+	OGLTextureLoader textureLoader;
+	Atlas* atlas = new Atlas(atlasPath, (spine::TextureLoader*)&textureLoader);
+	AtlasAttachmentLoader* attachmentLoader = new AtlasAttachmentLoader(atlas);
+	SkeletonJson* json = new SkeletonJson(attachmentLoader);
+	SkeletonData* skeletonData = json->readSkeletonDataFile(skeletonJsonPath);
+	init(skeletonData, nullptr);
 }
 
 SkeletonDrawable::~SkeletonDrawable() {
@@ -137,6 +152,7 @@ void SkeletonDrawable::draw() {
 	}
 	clipper.clipEnd();
 }
+
 
 SpineExtension* spine::getDefaultExtension() {
 	return new DefaultSpineExtension();

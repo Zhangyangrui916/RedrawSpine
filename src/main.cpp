@@ -48,6 +48,9 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    char* skeletonJsonPath = argv[1];
+    char* atlasPath = argv[2];
+    spine::SkeletonDrawable drawable(skeletonJsonPath, atlasPath);
 
     Renderer::init();
 
@@ -55,19 +58,12 @@ int main(int argc, char* argv[]) {
     Renderer::shader = new Shader("C:/code/mask-analyzer/src/test.vs", "C:/code/mask-analyzer/src/test.fs");
     Renderer::shader->use();
 
-    OGLTextureLoader textureLoader;
-    spine::Atlas atlas("C:/code/mask-analyzer/build/Debug/data/fake.atlas", (spine::TextureLoader*)&textureLoader);
-    spine::AtlasAttachmentLoader attachmentLoader(&atlas);
-    spine::SkeletonJson json(&attachmentLoader);
-    spine::SkeletonData* skeletonData = json.readSkeletonDataFile("C:/code/mask-analyzer/build/Debug/data/leidian.json");
-    spine::SkeletonDrawable drawable(skeletonData);
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
     drawable.skeleton->setToSetupPose();
     drawable.update(0);
     drawable.animationState->setAnimation(0, "default", true);
 
-    spine::Bone::setYDown(false);
 
     float lastFrame = static_cast<float>(glfwGetTime());
     // render loop
