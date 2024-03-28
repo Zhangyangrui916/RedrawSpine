@@ -20,9 +20,6 @@ void OGLTextureLoader::load(AtlasPage& page, const String& path) {
 		std::cout << "Texture failed to load" << path.buffer();
 		return;
 	}
-	else {
-		std::cout << "Texture loaded at: " << textureID;
-	}
 
 	GLenum format = GL_RED;
 	if (nrComponents == 3)
@@ -40,7 +37,6 @@ void OGLTextureLoader::load(AtlasPage& page, const String& path) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	stbi_image_free(data);
-
 
 	page.texture = (void*)textureID;
 	page.width = width;

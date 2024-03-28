@@ -15,6 +15,8 @@ namespace spine {
 
 		void draw();
 
+		void stdoutAABB();
+
 		Skeleton* skeleton;
 		AnimationState* animationState;
 

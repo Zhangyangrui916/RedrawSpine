@@ -52,6 +52,11 @@ int main(int argc, char* argv[]) {
     char* atlasPath = argv[2];
     spine::SkeletonDrawable drawable(skeletonJsonPath, atlasPath);
 
+    if (strcmp(argv[3], "getAABB") == 0) {
+        drawable.stdoutAABB();
+		return 0;
+	}
+
     Renderer::init();
 
     // build and compile shaders
@@ -80,15 +85,7 @@ int main(int argc, char* argv[]) {
 
         drawable.update(deltaTime);
         drawable.draw();
-        static float minx = 999, miny = 999, maxw = 0, maxh = 0;
-        float x, y, w, h;
-        Vector<float> vertices;
-        drawable.skeleton->getBounds(x, y, w, h, vertices);
-        minx = std::min(minx, x);
-        miny = std::min(miny, y);
-        maxw = std::max(w, maxw);
-        maxh = std::max(h, maxh);
-        std::cout << "minx: " << minx << " miny: " << miny << " w: " << maxw << " h: " << maxh << std::endl;
+
 
         saveFrameBuffer2Img("Z:/Cache/leidian.png", SCR_WIDTH, SCR_HEIGHT);
 

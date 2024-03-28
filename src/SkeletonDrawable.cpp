@@ -153,6 +153,32 @@ void SkeletonDrawable::draw() {
 	clipper.clipEnd();
 }
 
+void spine::SkeletonDrawable::stdoutAABB()
+{
+	skeleton->setPosition(0.f, 0.f);
+	skeleton->setToSetupPose();
+	update(0);
+	Vector<float> vertices;
+	float minx, miny, maxw, maxh;
+	skeleton->getBounds(minx, miny, maxw, maxh, vertices);
+	float x, y, w, h;
+	auto& animations = skeleton->getData()->getAnimations();
+	for (int i = 0; i < animations.size(); ++i) {
+		auto& animation = animations[i];
+		float duration = animation->getDuration();
+		animationState->setAnimation(0, animation->getName().buffer(), true);
+		update(0);
+		for (float time = 0; time < duration; time += 0.1, update(0.1)) {
+			skeleton->getBounds(x, y, w, h, vertices);
+			minx = std::min(minx, x);
+			miny = std::min(miny, y);
+			maxw = std::max(w, maxw);
+			maxh = std::max(h, maxh);
+		}
+	}
+	std::cout << minx << "," << miny << "," << maxw << "," << maxh;
+}
+
 
 SpineExtension* spine::getDefaultExtension() {
 	return new DefaultSpineExtension();
