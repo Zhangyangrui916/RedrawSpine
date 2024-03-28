@@ -6,9 +6,10 @@
 namespace Renderer {
 
 	extern unsigned int VAO, VBO, EBO;
+	extern int SCR_X, SCR_Y, SCR_WIDTH, SCR_HEIGHT;
 	extern Shader* shader;
 
-	void init();
+	void init(char* arg);
 
 	void Clear();
 

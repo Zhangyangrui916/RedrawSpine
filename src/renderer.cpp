@@ -6,12 +6,52 @@ namespace Renderer {
 
 	Shader* shader;
 
-	void init() {
-		//glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	int SCR_X;
+	int SCR_Y;
+	int SCR_WIDTH;
+	int SCR_HEIGHT;
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	void init(char* argv) {
+
+		std::istringstream iss(argv);
+		std::string temp;
+
+		std::getline(iss, temp, ',');
+		SCR_X = std::stoi(temp);
+		std::getline(iss, temp, ',');
+		SCR_Y = std::stoi(temp);
+		std::getline(iss, temp, ',');
+		SCR_WIDTH = std::stoi(temp);
+		std::getline(iss, temp, ',');
+		SCR_HEIGHT = std::stoi(temp);
+
+
+		Renderer::shader = new Shader("C:/code/mask-analyzer/src/test.vs", "C:/code/mask-analyzer/src/test.fs");
+		Renderer::shader->use();
+
+		Renderer::shader->setFloat("width", SCR_WIDTH);
+		Renderer::shader->setFloat("height", SCR_HEIGHT);
+		Renderer::shader->setFloat("minx", SCR_X);
+		Renderer::shader->setFloat("miny", SCR_Y);
+
+		GLuint framebuffer;
+		glGenFramebuffers(1, &framebuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+		GLuint renderbuffer;
+		glGenRenderbuffers(1, &renderbuffer);
+		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, SCR_WIDTH, SCR_HEIGHT);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::cout << "Error! Framebuffer is not complete!" << std::endl;
+
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA); //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -19,19 +59,15 @@ namespace Renderer {
 		glGenBuffers(1, &EBO);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		float empty[]{1.0f, 1.0f , 1.0f , 1.0f };
-		glBufferData(GL_ARRAY_BUFFER, sizeof(empty), &empty, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(2 * sizeof(float)));
-		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);	//xy
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(2 * sizeof(float)));	//rgba
+		glEnableVertexAttribArray(2);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));	//uv
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
 	}
 
 	void Clear() {

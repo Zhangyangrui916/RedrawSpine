@@ -1,16 +1,11 @@
 #include <glad/glad.h>
 #include <spine/spine.h>
-#include <stb_image.h>
 #include "stb_image_write.h"
 #include <shader.h>
 #include <GLFW/glfw3.h>
 #include <renderer.h>
 #include <texture.h>
 #include <SkeletonDrawable.h>
-
-// settings
-unsigned int SCR_WIDTH = 1000;
-unsigned int SCR_HEIGHT = 1000;
 
 using namespace spine;
 
@@ -30,9 +25,9 @@ int main(int argc, char* argv[]) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-    // glfw window creation
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "spine", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1, 1, "I use custom Framebuffer to render", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -56,43 +51,41 @@ int main(int argc, char* argv[]) {
         drawable.stdoutAABB();
 		return 0;
 	}
-
-    Renderer::init();
-
-    // build and compile shaders
-    Renderer::shader = new Shader("C:/code/mask-analyzer/src/test.vs", "C:/code/mask-analyzer/src/test.fs");
-    Renderer::shader->use();
+    else {
+        Renderer::init(argv[3]);
+    }
 
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
     drawable.skeleton->setToSetupPose();
     drawable.update(0);
+    Renderer::Clear();
+    drawable.draw();
+    saveFrameBuffer2Img("Z:/Cache/rest.png", Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+
     drawable.animationState->setAnimation(0, "default", true);
 
 
-    float lastFrame = static_cast<float>(glfwGetTime());
-    // render loop
-    // -----------
     while (true/*!glfwWindowShouldClose(window)*/)
     {
         Renderer::Clear();
 
-        float currentFrame = static_cast<float>(glfwGetTime());
-        float deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-
-
-        drawable.update(deltaTime);
+        drawable.update(0.1);
         drawable.draw();
 
+        static int count = 0;
+        count++;
+        char buffer[100]; // 需要确保这个buffer足够大以容纳转换后的字符串
+        sprintf(buffer, "%d", count); // 将int转换为字符数组
+        char* str = buffer; // 如果需要的是char*类型
 
-        saveFrameBuffer2Img("Z:/Cache/leidian.png", SCR_WIDTH, SCR_HEIGHT);
+        char path[100];
+        strcpy(path, "Z:/Cache/");
+        strcat(path, str);
+        strcat(path, ".png");
+        saveFrameBuffer2Img(path, Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
 
-
-        glfwSwapBuffers(window);
     }
-
 
     return 0;
 }

@@ -131,8 +131,8 @@ void SkeletonDrawable::draw() {
 
 		glVertices.clear();
 		for (int ii = 0; ii < verticesCount << 1; ii += 2) {
-			glVertices.add((*vertices)[ii] / 40.f);
-			glVertices.add((*vertices)[ii + 1] / 40.f);
+			glVertices.add((*vertices)[ii]);
+			glVertices.add((*vertices)[ii + 1]);
 			glVertices.add(r / 255.0);
 			glVertices.add(g / 255.0);
 			glVertices.add(b / 255.0);
