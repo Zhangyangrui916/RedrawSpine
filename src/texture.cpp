@@ -38,7 +38,7 @@ void OGLTextureLoader::load(AtlasPage& page, const String& path) {
 
 	stbi_image_free(data);
 
-	page.texture = (void*)textureID;
+	page.texture = new Texture(width, height, textureID);
 	page.width = width;
 	page.height = height;
 }

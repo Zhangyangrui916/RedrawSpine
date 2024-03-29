@@ -1,6 +1,7 @@
 #pragma once
 #include <spine/spine.h>
-
+#include <vector>
+#include <string>
 namespace spine {
 
 	class SkeletonDrawable {
@@ -19,12 +20,13 @@ namespace spine {
 
 		Skeleton* skeleton;
 		AnimationState* animationState;
+		std::vector<std::string> NeedDrawSlots;
 
 	private:
 		void init(SkeletonData* skeletonData, AnimationStateData* animationStateData);
 
 		bool ownsAnimationStateData;
-		SkeletonClipping clipper;
+		//SkeletonClipping clipper;
 		Vector<float> worldVertices;
 		Vector<int> glIndices;
 		Vector<float> glVertices;

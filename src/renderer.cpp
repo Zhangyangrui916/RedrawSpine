@@ -4,16 +4,22 @@ namespace Renderer {
 
 	unsigned int VAO, VBO, EBO;
 
-	Shader* shader;
+	Shader* shader = nullptr;
 
 	int SCR_X;
 	int SCR_Y;
 	int SCR_WIDTH;
 	int SCR_HEIGHT;
 
-	void init(char* argv) {
+	constexpr int GLFormat[2][3]{ // {internalFormat, format, type}
+		{GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE},
+		{GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT}
+	};
+	int mode;
 
-		std::istringstream iss(argv);
+	void init(char* viewport, char* imgFormat) {
+
+		std::istringstream iss(viewport);
 		std::string temp;
 
 		std::getline(iss, temp, ',');
@@ -25,10 +31,19 @@ namespace Renderer {
 		std::getline(iss, temp, ',');
 		SCR_HEIGHT = std::stoi(temp);
 
+		char* frag;
+		int GL_img_format;
+		if (strcmp(imgFormat, "rgb") == 0) {
+			mode = 0;
+			frag = "C:/code/mask-analyzer/src/rgb.glsl";
+		}
+		else {
+			mode = 1;
+			frag = "C:/code/mask-analyzer/src/uv.glsl";
+		}
 
-		Renderer::shader = new Shader("C:/code/mask-analyzer/src/test.vs", "C:/code/mask-analyzer/src/test.fs");
+		Renderer::shader = new Shader("C:/code/mask-analyzer/src/vs.glsl", frag);
 		Renderer::shader->use();
-
 		Renderer::shader->setFloat("width", SCR_WIDTH);
 		Renderer::shader->setFloat("height", SCR_HEIGHT);
 		Renderer::shader->setFloat("minx", SCR_X);
@@ -41,10 +56,9 @@ namespace Renderer {
 		GLuint renderbuffer;
 		glGenRenderbuffers(1, &renderbuffer);
 		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+		glRenderbufferStorage(GL_RENDERBUFFER, GLFormat[mode][0], SCR_WIDTH, SCR_HEIGHT);
 
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, SCR_WIDTH, SCR_HEIGHT);
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
-
 		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 			std::cout << "Error! Framebuffer is not complete!" << std::endl;
 
@@ -88,7 +102,17 @@ namespace Renderer {
 	}
 
 
+	std::unique_ptr<GLubyte[]> ReadPixelsRGBA() {
+		std::unique_ptr<GLubyte[]> pixels(new GLubyte[SCR_WIDTH * SCR_HEIGHT * 4]);
+		glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GLFormat[0][1], GLFormat[0][2], pixels.get());
+		return pixels;
+	}
 
+	std::unique_ptr<GLuint[]> ReadPixelsUV() {
+		std::unique_ptr<GLuint[]> pixels(new GLuint[SCR_WIDTH * SCR_HEIGHT]);
+		glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GLFormat[1][1], GLFormat[1][2], pixels.get());
+		return pixels;
+	}
 
 }
 

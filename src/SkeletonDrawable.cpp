@@ -48,7 +48,7 @@ void SkeletonDrawable::draw() {
 	quadIndices.add(2);
 	quadIndices.add(3);
 	quadIndices.add(0);
-	unsigned int texture;
+	Texture* texture;
 
 
 	for (unsigned i = 0; i < skeleton->getSlots().size(); ++i) {
@@ -56,9 +56,19 @@ void SkeletonDrawable::draw() {
 		Attachment* attachment = slot.getAttachment();
 		if (!attachment) continue;
 
+		if (NeedDrawSlots.size() > 0) {
+			for (auto& name : NeedDrawSlots) {
+				if (attachment->getName().buffer() == name) {
+					Renderer::shader->setInt("u_slotIndex", i);
+					goto DRAWSLOT;
+				}
+			}
+			continue;
+		}
+	DRAWSLOT:
+
 		// Early out if the slot color is 0 or the bone is not active
 		if (slot.getColor().a == 0 || !slot.getBone().isActive()) {
-			clipper.clipEnd(slot);
 			continue;
 		}
 
@@ -75,7 +85,6 @@ void SkeletonDrawable::draw() {
 
 			// Early out if the slot color is 0
 			if (attachmentColor->a == 0) {
-				clipper.clipEnd(slot);
 				continue;
 			}
 
@@ -85,7 +94,7 @@ void SkeletonDrawable::draw() {
 			uvs = &regionAttachment->getUVs();
 			indices = &quadIndices;
 			indicesCount = 6;
-			texture = (unsigned int)regionAttachment->getRegion()->rendererObject;
+			texture = (Texture*)regionAttachment->getRegion()->rendererObject;
 
 		}
 		else if (attachment->getRTTI().isExactly(MeshAttachment::rtti)) {
@@ -94,40 +103,29 @@ void SkeletonDrawable::draw() {
 
 			// Early out if the slot color is 0
 			if (attachmentColor->a == 0) {
-				clipper.clipEnd(slot);
 				continue;
 			}
 
 			worldVertices.setSize(mesh->getWorldVerticesLength(), 0);
 			mesh->computeWorldVertices(slot, 0, mesh->getWorldVerticesLength(), worldVertices.buffer(), 0, 2);
-			texture = (unsigned int)mesh->getRegion()->rendererObject;
+			texture = (Texture*)mesh->getRegion()->rendererObject;
 			verticesCount = mesh->getWorldVerticesLength() >> 1;
 			uvs = &mesh->getUVs();
 			indices = &mesh->getTriangles();
 			indicesCount = indices->size();
 
 		}
-		else if (attachment->getRTTI().isExactly(ClippingAttachment::rtti)) {
-			ClippingAttachment* clip = (ClippingAttachment*)slot.getAttachment();
-			clipper.clipStart(slot, clip);
-			continue;
-		}
 		else
 			continue;
+
+		Renderer::shader->setInt("u_width", texture->width);
+		Renderer::shader->setInt("u_height", texture->height);
+		glBindTexture(GL_TEXTURE_2D, texture->textureID);
 
 		uint8_t r = static_cast<uint8_t>(skeleton->getColor().r * slot.getColor().r * attachmentColor->r * 255);
 		uint8_t g = static_cast<uint8_t>(skeleton->getColor().g * slot.getColor().g * attachmentColor->g * 255);
 		uint8_t b = static_cast<uint8_t>(skeleton->getColor().b * slot.getColor().b * attachmentColor->b * 255);
 		uint8_t a = static_cast<uint8_t>(skeleton->getColor().a * slot.getColor().a * attachmentColor->a * 255);
-
-		if (clipper.isClipping()) {
-			clipper.clipTriangles(worldVertices, *indices, *uvs, 2);
-			vertices = &clipper.getClippedVertices();
-			verticesCount = clipper.getClippedVertices().size() >> 1;
-			uvs = &clipper.getClippedUVs();
-			indices = &clipper.getClippedTriangles();
-			indicesCount = clipper.getClippedTriangles().size();
-		}
 
 		glVertices.clear();
 		for (int ii = 0; ii < verticesCount << 1; ii += 2) {
@@ -145,12 +143,9 @@ void SkeletonDrawable::draw() {
 		for (int ii = 0; ii < (int)indices->size(); ii++)
 			glIndices.add((*indices)[ii]);
 
-		glBindTexture(GL_TEXTURE_2D, texture);
 		Renderer::Draw(glVertices, glIndices);
 
-		clipper.clipEnd(slot);
 	}
-	clipper.clipEnd();
 }
 
 void spine::SkeletonDrawable::stdoutAABB()
