@@ -1,8 +1,7 @@
 #include <SkeletonDrawable.h>
-#include <glad/glad.h>
 #include <renderer.h>
 #include <texture.h>
-
+#include <algorithm>
 using namespace spine;
 
 void SkeletonDrawable::init(SkeletonData* skeletonData, AnimationStateData* animationStateData)
@@ -56,10 +55,20 @@ void SkeletonDrawable::draw() {
 		Attachment* attachment = slot.getAttachment();
 		if (!attachment) continue;
 
-		if (NeedDrawSlots.size() > 0) {
-			for (auto& name : NeedDrawSlots) {
-				if (attachment->getName().buffer() == name) {
-					Renderer::shader->setInt("u_slotIndex", i);
+		if (NeedDrawAttachments.size() > 0) {	//没说要绘制的attachment，就绘制全部
+			for (auto& attachmentName : NeedDrawAttachments) {
+				if (attachment->getName().buffer() == attachmentName) {
+					int slotIndex = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) {
+						auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
+						return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
+						}) - skeleton->getSlots().begin();
+					bool skipRedraw = std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), [&attachmentName](const std::string& skipAttachmentName) {
+						return attachmentName == skipAttachmentName;
+						});
+					if (skipRedraw){
+						slotIndex = 65535;
+					}
+					Renderer::shader->setInt("u_slotIndex", slotIndex);
 					goto DRAWSLOT;
 				}
 			}
@@ -172,6 +181,47 @@ void spine::SkeletonDrawable::stdoutAABB()
 		}
 	}
 	std::cout << minx << "," << miny << "," << maxw << "," << maxh;
+}
+
+std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> spine::SkeletonDrawable::GetRedrawTexImage()
+{
+	std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> slotIndex2Pixels;
+	for (auto& attachmentName : NeedDrawAttachments) {
+		if (std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), 
+			[&attachmentName](const std::string& skipAttachmentName) {
+				return attachmentName == skipAttachmentName;
+		})) {
+			continue;
+		}
+
+
+		auto iter = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) { 
+			auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
+			return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
+			});
+		assert(iter != skeleton->getSlots().end());
+		int slotIndex = iter - skeleton->getSlots().begin();
+		auto attachment = (*iter)->getAttachment();
+		Texture* texture = [&attachment]() -> Texture* {
+			if (attachment->getRTTI().isExactly(MeshAttachment::rtti) ) {
+				return (Texture*)((MeshAttachment*)attachment)->getRegion()->rendererObject;
+			}
+			else if (attachment->getRTTI().isExactly(RegionAttachment::rtti)) {
+				return (Texture*)((RegionAttachment*)attachment)->getRegion()->rendererObject;
+			}
+			else {
+				std::cout << "Not supported attachment type";
+				return nullptr;
+			}
+		}();
+
+		// 读取像素数据
+		std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
+		glBindTexture(GL_TEXTURE_2D, texture->textureID);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+		slotIndex2Pixels[slotIndex] = std::make_tuple(std::move(pixels), texture->width, texture->height);
+	}
+	return slotIndex2Pixels;
 }
 
 

@@ -39,6 +39,14 @@ namespace spine {
 	template<typename T>
 	class SP_API Vector : public SpineObject {
 	public:
+		typedef T* iterator;
+		typedef const T* const_iterator;
+
+		iterator begin() { return _buffer; }
+		const_iterator begin() const { return _buffer; }
+		iterator end() { return _buffer + _size; }
+		const_iterator end() const { return _buffer + _size; }
+
 		Vector() : _size(0), _capacity(0), _buffer(NULL) {
 		}
 

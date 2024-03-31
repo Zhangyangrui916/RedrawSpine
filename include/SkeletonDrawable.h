@@ -1,7 +1,10 @@
 #pragma once
 #include <spine/spine.h>
+#include <glad/glad.h>
 #include <vector>
 #include <string>
+#include <map>
+#include <memory>
 namespace spine {
 
 	class SkeletonDrawable {
@@ -18,10 +21,12 @@ namespace spine {
 
 		void stdoutAABB();
 
+		std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> GetRedrawTexImage();
+
 		Skeleton* skeleton;
 		AnimationState* animationState;
-		std::vector<std::string> NeedDrawSlots;
-
+		std::vector<std::string> NeedDrawAttachments;
+		std::vector<std::string> SkipRedrawAttachments;
 	private:
 		void init(SkeletonData* skeletonData, AnimationStateData* animationStateData);
 

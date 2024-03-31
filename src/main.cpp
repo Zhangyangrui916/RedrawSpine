@@ -64,10 +64,15 @@ int main(int argc, char* argv[]) {
     for (int i = 5; i < argc; i++) {
         std::string arg = argv[i];
         std::string temp;
-        if (arg == "-slots") {
+        if (arg == "-attachments") {
             std::istringstream needDrawSlots(argv[++i]);
+            auto* attachments = &drawable.NeedDrawAttachments;
             while (std::getline(needDrawSlots, temp, ',')) {
-                drawable.NeedDrawSlots.push_back(temp);
+                if (temp == "@") {
+                    attachments = &drawable.SkipRedrawAttachments;
+                    continue;
+                }
+                attachments->push_back(temp);
             }
 		}
         else if (arg == "-frame"){
@@ -76,40 +81,38 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-
-    // assert uv mode
-    std::unique_ptr<GLuint[]> oldPose, newPose;
-
+    // 寻找keypose  //assert(argv[4] == "uv")
+    // 1.渲染restposeUV
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
     drawable.skeleton->setToSetupPose();
     drawable.update(0);
-
     Renderer::Clear();
     drawable.draw();
-    oldPose = Renderer::ReadPixelsUV();
-
-    auto& anims = drawable.skeleton->getData()->getAnimations();
-    for (int i = 0; i < anims.size(); i++) {
-		drawable.animationState->setAnimation(0, anims[i], true);
-        drawable.update(0);
-        for (float time = 0.0, duration = anims[i]->getDuration(); time < duration; time += 0.1, drawable.update(0.1)) {
-            Renderer::Clear();
-            drawable.draw();
-            newPose = Renderer::ReadPixelsUV();
-
-            char buffer[100]; // 需要确保这个buffer足够大以容纳转换后的字符串
-            sprintf(buffer, "%d", int(time*10)); // 将int转换为字符数组
-            char path[100];
-            strcpy(path, "Z:/Cache/");
-            strcat(path, buffer);
-            strcat(path, ".bin");
-
-            save_to_file(oldPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * sizeof(GLuint), path);
-
-            oldPose = std::move(newPose);
-        }
+    std::unique_ptr<GLuint[]> restPose = Renderer::ReadPixelsUV();
+    // 2. 修改texture的非透明部分为白色， 然后对于所有restpose上出现过的uv，设为黑色
+    auto slotIndex2Pixels = drawable.GetRedrawTexImage();
+    for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
+        for (int j = 0; j < Renderer::SCR_WIDTH; j++) {
+			int index = i*Renderer::SCR_WIDTH + j;
+            unsigned int Id_V_U = restPose[index];
+            if(Id_V_U == 0) continue; 
+            unsigned int U = Id_V_U & 0xFFF;
+            unsigned int V = (Id_V_U >> 12) & 0xFFF;
+            unsigned int Id = (Id_V_U >> 24) & 0xFF;
+            auto& [texture, width, height] = slotIndex2Pixels[Id];
+			texture[(V * width + U) * 4 + 0] = 0;
+            texture[(V * width + U) * 4 + 1] = 0;
+            texture[(V * width + U) * 4 + 2] = 0;
+            texture[(V * width + U) * 4 + 3] = 255;
+		}
 	}
+    for (auto& [Id, textureWH] : slotIndex2Pixels) {
+        auto& [texture, width, height] = textureWH;
+        char buffer[100];
+        sprintf(buffer, "%d.png", Id);
+        stbi_write_png(buffer, width, height, 4, texture.get(), width * 4);
+    }
 
     return 0;
 }
