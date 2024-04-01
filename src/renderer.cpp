@@ -32,7 +32,6 @@ namespace Renderer {
 		SCR_HEIGHT = std::stoi(temp);
 
 		char* frag;
-		int GL_img_format;
 		if (strcmp(imgFormat, "rgb") == 0) {
 			mode = 0;
 			frag = "C:/code/mask-analyzer/src/rgb.glsl";
@@ -42,12 +41,7 @@ namespace Renderer {
 			frag = "C:/code/mask-analyzer/src/uv.glsl";
 		}
 
-		Renderer::shader = new Shader("C:/code/mask-analyzer/src/vs.glsl", frag);
-		Renderer::shader->use();
-		Renderer::shader->setFloat("width", SCR_WIDTH);
-		Renderer::shader->setFloat("height", SCR_HEIGHT);
-		Renderer::shader->setFloat("minx", SCR_X);
-		Renderer::shader->setFloat("miny", SCR_Y);
+		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", frag);
 
 		GLuint framebuffer;
 		glGenFramebuffers(1, &framebuffer);
@@ -89,6 +83,15 @@ namespace Renderer {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
+	void UpdateShader(const char* vs, const char* fs) {
+		Renderer::shader = new Shader(vs, fs);
+		Renderer::shader->use();
+		Renderer::shader->setFloat("width", SCR_WIDTH);
+		Renderer::shader->setFloat("height", SCR_HEIGHT);
+		Renderer::shader->setFloat("minx", SCR_X);
+		Renderer::shader->setFloat("miny", SCR_Y);
+	}
+
 	void Draw(spine::Vector<float> vertices, spine::Vector<int> indices)
 	{
 		glBindVertexArray(VAO);
@@ -108,7 +111,7 @@ namespace Renderer {
 		return pixels;
 	}
 
-	std::unique_ptr<GLuint[]> ReadPixelsUV() {
+	std::unique_ptr<GLuint[]> ReadPixelsR32UI() {
 		std::unique_ptr<GLuint[]> pixels(new GLuint[SCR_WIDTH * SCR_HEIGHT]);
 		glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GLFormat[1][1], GLFormat[1][2], pixels.get());
 		return pixels;

@@ -11,12 +11,14 @@ uniform int u_height;
 
 void main()
 {
-    float alpha = texture(u_texture, v_texCoords).a;
-    if (alpha < 0.05)
+    float red = texture(u_texture, v_texCoords).r;
+    // 为零时透明的
+    if (red < 0.05)
     {
 		discard;
 	}
-    if (u_slotIndex == 65535) {
+    // 不为1时表明被绘制过
+    if (red < 0.95 || u_slotIndex == 65535) {
         FragColor = uvec4(0, 0, 0, 1);
 		return;
     }

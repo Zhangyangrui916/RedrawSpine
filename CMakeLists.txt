@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(mask-analyzer)
+project(mask-analyzer LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 if(MSVC)
@@ -16,6 +16,13 @@ add_subdirectory(glfw glfw)
 find_package(OpenGL REQUIRED)
 set(LIBS glfw3 ${OPENGL_LIBRARIES})
 
+if(POLICY CMP0146)
+  cmake_policy(SET CMP0146 OLD) 
+endif()
+find_package(CUDA REQUIRED)
+set(LIBS ${LIBS} ${CUDA_LIBRARIES})
+set(CMAKE_CUDA_STANDARD 17)
+
 add_library(STB_IMAGE "stb_image/stb_image.cpp")
 set(LIBS ${LIBS} STB_IMAGE)
 
@@ -26,15 +33,15 @@ add_subdirectory(spine-cpp spine-cpp)
 
 include_directories(
     ${OPENGL_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
     spine-cpp/spine-cpp/include
 	stb_image
     glad/include
     glfw/include
     include
 )
-
-file(GLOB_RECURSE  HEAD  CONFIGURE_DEPENDS "include/*.h")
-file(GLOB_RECURSE  SOURCE CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE HEAD CONFIGURE_DEPENDS "include/*.h" "include/*.cuh")
+file(GLOB_RECURSE  SOURCE CONFIGURE_DEPENDS "src/*.cpp" "src/*.cu")
 list(APPEND SOURCE "stb_image/stb_image.cpp")
 set(AllFile ${HEAD} ${SOURCE})
 message("HEAD:")

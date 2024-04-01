@@ -12,9 +12,11 @@ namespace Renderer {
 
 	void Clear();
 
+	void UpdateShader(const char* vs, const char* fs);
+
 	void Draw(spine::Vector<float> vertices, spine::Vector<int> indices);
 
 	std::unique_ptr<GLubyte[]> ReadPixelsRGBA();
-	std::unique_ptr<GLuint[]> ReadPixelsUV();
+	std::unique_ptr<GLuint[]> ReadPixelsR32UI();
 };
 

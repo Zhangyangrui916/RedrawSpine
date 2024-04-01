@@ -183,9 +183,30 @@ void spine::SkeletonDrawable::stdoutAABB()
 	std::cout << minx << "," << miny << "," << maxw << "," << maxh;
 }
 
-std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> spine::SkeletonDrawable::GetRedrawTexImage()
+static std::unique_ptr<GLubyte[]> GetTexImage(Texture* texture, int format)
 {
-	std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> slotIndex2Pixels;
+	if (format == GL_RGBA) {
+		std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
+		glBindTexture(GL_TEXTURE_2D, texture->textureID);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+		return std::move(pixels);
+	}
+	else if (format == GL_RED) {
+		std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height]);
+		glBindTexture(GL_TEXTURE_2D, texture->textureID);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
+		return std::move(pixels);
+	}
+	else {
+		std::cout << "Not supported format";
+		return nullptr;
+	}
+}
+
+
+std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> spine::SkeletonDrawable::GetRedrawTexImage(int format)
+{
+	std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> slotIndex2Pixels;
 	for (auto& attachmentName : NeedDrawAttachments) {
 		if (std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), 
 			[&attachmentName](const std::string& skipAttachmentName) {
@@ -216,13 +237,15 @@ std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> spine::SkeletonD
 		}();
 
 		// 读取像素数据
-		std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
-		glBindTexture(GL_TEXTURE_2D, texture->textureID);
-		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
-		slotIndex2Pixels[slotIndex] = std::make_tuple(std::move(pixels), texture->width, texture->height);
+		//std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
+		//glBindTexture(GL_TEXTURE_2D, texture->textureID);
+		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+
+		slotIndex2Pixels[slotIndex] = std::make_tuple(std::move(GetTexImage(texture, format)), texture);
 	}
 	return slotIndex2Pixels;
 }
+
 
 
 SpineExtension* spine::getDefaultExtension() {

@@ -8,8 +8,9 @@
 #include <SkeletonDrawable.h>
 #include <string>
 #include <iostream>
-
 #include <fstream>
+#include <chrono>
+#include "utility.cuh"
 
 void save_to_file(void* data, int lengthInBytes, const char* filename) {
     std::ofstream out(filename, std::ios::binary);
@@ -82,6 +83,7 @@ int main(int argc, char* argv[]) {
 	}
 
     // 寻找keypose  //assert(argv[4] == "uv")
+    // 
     // 1.渲染restposeUV
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
@@ -89,9 +91,17 @@ int main(int argc, char* argv[]) {
     drawable.update(0);
     Renderer::Clear();
     drawable.draw();
-    std::unique_ptr<GLuint[]> restPose = Renderer::ReadPixelsUV();
-    // 2. 修改texture的非透明部分为白色， 然后对于所有restpose上出现过的uv，设为黑色
-    auto slotIndex2Pixels = drawable.GetRedrawTexImage();
+    std::unique_ptr<GLuint[]> restPose = Renderer::ReadPixelsR32UI();
+    save_to_file(restPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, "restpose.bin");
+
+    // 2. 修改texture. 透明为0，非透明255， 然后对于所有restpose上出现过的uv，设为128
+    auto slotIndex2Pixels = drawable.GetRedrawTexImage(GL_RGBA);
+    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+        auto& [pixels, texture] = pixels_texture;
+        auto singlechan = convertToSingleChannelOnAlpha(std::move(pixels_texture));
+        slotIndex2Pixels[Id] = std::move(singlechan);
+    }
+    long long start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
         for (int j = 0; j < Renderer::SCR_WIDTH; j++) {
 			int index = i*Renderer::SCR_WIDTH + j;
@@ -100,19 +110,48 @@ int main(int argc, char* argv[]) {
             unsigned int U = Id_V_U & 0xFFF;
             unsigned int V = (Id_V_U >> 12) & 0xFFF;
             unsigned int Id = (Id_V_U >> 24) & 0xFF;
-            auto& [texture, width, height] = slotIndex2Pixels[Id];
-			texture[(V * width + U) * 4 + 0] = 0;
-            texture[(V * width + U) * 4 + 1] = 0;
-            texture[(V * width + U) * 4 + 2] = 0;
-            texture[(V * width + U) * 4 + 3] = 255;
+            auto& [pixels, texture] = slotIndex2Pixels[Id];
+            int width = texture->width;
+			pixels[(V * width + U)] = 127;
 		}
 	}
-    for (auto& [Id, textureWH] : slotIndex2Pixels) {
-        auto& [texture, width, height] = textureWH;
-        char buffer[100];
-        sprintf(buffer, "%d.png", Id);
-        stbi_write_png(buffer, width, height, 4, texture.get(), width * 4);
-    }
+    long long end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::cout << "overwrite texture Time: " << end - start << "ms" << std::endl;
+
+    // 3.更新texture到GPU，再渲染每帧。
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+		auto& [pixels, texture] = pixels_texture;
+        glBindTexture(GL_TEXTURE_2D, texture->textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texture->width, texture->height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
+	}
+    Renderer::UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
+
+    start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    auto& animations = drawable.skeleton->getData()->getAnimations();
+    constexpr float frameTime = 0.1f;
+    for (auto& animation : animations) {
+		float duration = animation->getDuration();
+		drawable.animationState->setAnimation(0, animation->getName().buffer(), true);
+		drawable.update(0);
+        for (float time = 0; time < duration; time += frameTime, drawable.update(frameTime)) {
+			Renderer::Clear();
+			drawable.draw();
+			std::unique_ptr<GLuint[]> pixels = Renderer::ReadPixelsR32UI();
+			char buffer[100];
+			sprintf(buffer, "Z:/Cache/%s_%.2f.bin", animation->getName().buffer(), time);
+            save_to_file(pixels.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, buffer);
+		}
+	}   
+    end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::cout << "Time: " << end - start << "ms" << std::endl;
+
+    //for (auto& [Id, textureWH] : slotIndex2Pixels) {
+    //    auto& [texture, width, height] = textureWH;
+    //    char buffer[100];
+    //    sprintf(buffer, "%d.png", Id);
+    //    stbi_write_png(buffer, width, height, 1, texture.get(), width * 1); //stbi_write_png(buffer, width, height, 4, texture.get(), width * 4);
+    //}
 
     return 0;
 }

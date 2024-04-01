@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <texture.h>
 namespace spine {
 
 	class SkeletonDrawable {
@@ -21,7 +22,7 @@ namespace spine {
 
 		void stdoutAABB();
 
-		std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, int, int>> GetRedrawTexImage();
+		std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> GetRedrawTexImage(int format);
 
 		Skeleton* skeleton;
 		AnimationState* animationState;
