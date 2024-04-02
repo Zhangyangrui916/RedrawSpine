@@ -28,11 +28,14 @@ namespace spine {
 		AnimationState* animationState;
 		std::vector<std::string> NeedDrawAttachments;
 		std::vector<std::string> SkipRedrawAttachments;
+
+		char* skeletonJsonPath;
+		char* atlasPath;
+
 	private:
 		void init(SkeletonData* skeletonData, AnimationStateData* animationStateData);
 
 		bool ownsAnimationStateData;
-		//SkeletonClipping clipper;
 		Vector<float> worldVertices;
 		Vector<int> glIndices;
 		Vector<float> glVertices;

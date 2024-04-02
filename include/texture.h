@@ -1,5 +1,6 @@
 #pragma once
 #include <spine/spine.h>
+#include <string>
 
 class OGLTextureLoader : public spine::TextureLoader {
 public:
@@ -15,6 +16,7 @@ class Texture {
 public:
 	int width, height;
 	unsigned int textureID;
-	Texture(int width, int height, unsigned int textureID) : width(width), height(height), textureID(textureID) {}
+	std::string path;
+	Texture(int width, int height, unsigned int textureID, const char* path) : width(width), height(height), textureID(textureID), path(path) {}
 
 };

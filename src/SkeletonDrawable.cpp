@@ -18,6 +18,7 @@ SkeletonDrawable::SkeletonDrawable(SkeletonData* skeletonData, AnimationStateDat
 }
 
 spine::SkeletonDrawable::SkeletonDrawable(char* skeletonJsonPath, char* atlasPath)
+	: skeletonJsonPath(skeletonJsonPath), atlasPath(atlasPath)
 {
 	OGLTextureLoader textureLoader;
 	Atlas* atlas = new Atlas(atlasPath, (spine::TextureLoader*)&textureLoader);
@@ -207,6 +208,7 @@ static std::unique_ptr<GLubyte[]> GetTexImage(Texture* texture, int format)
 std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> spine::SkeletonDrawable::GetRedrawTexImage(int format)
 {
 	std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> slotIndex2Pixels;
+	assert(NeedDrawAttachments.size() > 0);
 	for (auto& attachmentName : NeedDrawAttachments) {
 		if (std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), 
 			[&attachmentName](const std::string& skipAttachmentName) {
@@ -235,11 +237,6 @@ std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> spine::SkeletonD
 				return nullptr;
 			}
 		}();
-
-		// 读取像素数据
-		//std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
-		//glBindTexture(GL_TEXTURE_2D, texture->textureID);
-		//glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 
 		slotIndex2Pixels[slotIndex] = std::make_tuple(std::move(GetTexImage(texture, format)), texture);
 	}

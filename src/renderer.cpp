@@ -38,7 +38,7 @@ namespace Renderer {
 		}
 		else {
 			mode = 1;
-			frag = "C:/code/mask-analyzer/src/uv.glsl";
+			frag = "C:/code/mask-analyzer/src/uv_redraw.glsl";
 		}
 
 		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", frag);
