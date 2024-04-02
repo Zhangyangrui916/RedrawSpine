@@ -119,7 +119,6 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         std::string temp;
         if(0 == strcmp(argv[i], "-attachments")){
-            std::cout<<"NeedDrawAttachments: ";
             std::istringstream needDrawSlots(argv[++i]);
             auto* attachments = &drawable.NeedDrawAttachments;
             while (std::getline(needDrawSlots, temp, ',')) {
@@ -142,7 +141,7 @@ int main(int argc, char* argv[]) {
             auto& [currentPoseUVMapPath, nextposePath] = [&]() -> std::pair<std::string, std::string> {
                 std::ifstream file(uvMapPath + std::string("/sequence.txt"));
                 std::string line1, line2;
-                for (int i = 0; i <= frame; std::getline(file, line1));
+                for (int i = 0; i <= frame; ++i)std::getline(file, line1);
                 std::getline(file, line2);
                 file.close();
                 return {line1, line2};
@@ -158,14 +157,11 @@ int main(int argc, char* argv[]) {
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
                     auto& [pixels, texture] = slotIndex2Pixels[Id];
                     int width = texture->width;
-                    pixels[(V * width + U) * 4 + 0] = renderResult[index * 4 + 0];
-                    pixels[(V * width + U) * 4 + 1] = renderResult[index * 4 + 1];
-                    pixels[(V * width + U) * 4 + 2] = renderResult[index * 4 + 2];
-                    pixels[(V * width + U) * 4 + 3] = renderResult[index * 4 + 3];
+                    pixels[(V * width + U) * 4 + 0] = renderResult[index * 3 + 0];
+                    pixels[(V * width + U) * 4 + 1] = renderResult[index * 3 + 1];
+                    pixels[(V * width + U) * 4 + 2] = renderResult[index * 3 + 2];
                 }
             }
-
-            std::cout << "overwrite success";
 
             for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
 				auto& [pixels, texture] = pixels_texture;
@@ -175,6 +171,10 @@ int main(int argc, char* argv[]) {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 			}
 
+            size_t pos = nextposePath.find_last_of("/\\");
+            if (pos != std::string::npos) {
+				nextposePath = nextposePath.substr(pos + 1);
+            }
             size_t dotPos = nextposePath.find_last_of(".");
             if (dotPos != std::string::npos)
                 nextposePath = nextposePath.substr(0, dotPos);
@@ -190,8 +190,9 @@ int main(int argc, char* argv[]) {
                 std::string nextFramePath = directory + std::string("/") + std::to_string(++frame) + ".png";
                 stbi_write_png(nextFramePath.c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 4, pixels.get(), Renderer::SCR_WIDTH * 4);
             }
-
-            std::cout << "fail to get animation name and time from file name\n";
+            else {
+                std::cout << "fail to get animation name and time from file name\n";
+            }
             return 0;
 		}
 	}
