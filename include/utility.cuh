@@ -19,5 +19,6 @@ std::unique_ptr<GLubyte[]> decodeUVToRGB(GLuint* uv, int width, int height);
 
 std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height);
 
+void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height);
 
 #endif

@@ -6,14 +6,17 @@ namespace Renderer {
 
 	Shader* shader = nullptr;
 
+	GLuint framebuffer;
+
 	int SCR_X;
 	int SCR_Y;
 	int SCR_WIDTH;
 	int SCR_HEIGHT;
 
-	constexpr int GLFormat[2][3]{ // {internalFormat, format, type}
+	constexpr int GLFormat[3][3]{ // {internalFormat, format, type}
 		{GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE},
-		{GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT}
+		{GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT},
+		{GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_BYTE}
 	};
 	int mode;
 
@@ -35,6 +38,8 @@ namespace Renderer {
 		if (strcmp(imgFormat, "rgb") == 0) {
 			mode = 0;
 			frag = "C:/code/mask-analyzer/src/rgb.glsl";
+			glEnable(GL_BLEND);
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA); //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 		else {
 			mode = 1;
@@ -43,7 +48,7 @@ namespace Renderer {
 
 		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", frag);
 
-		GLuint framebuffer;
+		//GLuint framebuffer;
 		glGenFramebuffers(1, &framebuffer);
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
@@ -57,9 +62,6 @@ namespace Renderer {
 			std::cout << "Error! Framebuffer is not complete!" << std::endl;
 
 		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-		glEnable(GL_BLEND);
-		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA); //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -92,6 +94,32 @@ namespace Renderer {
 		Renderer::shader->setFloat("miny", SCR_Y);
 	}
 
+	static GLuint CTRLframebuffer = 0;
+	void StartDrawCTRL() {
+		if (CTRLframebuffer == 0) {
+			glGenFramebuffers(1, &CTRLframebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, CTRLframebuffer);
+
+			GLuint renderbuffer;
+			glGenRenderbuffers(1, &renderbuffer);
+			glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GLFormat[2][0], SCR_WIDTH, SCR_HEIGHT);
+
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+				std::cout << "Error! Framebuffer is not complete!" << std::endl;
+		}
+		else {
+			glBindFramebuffer(GL_FRAMEBUFFER, CTRLframebuffer);
+		}
+		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/ctrl.glsl");
+	}
+
+	void EndDrawCTRL() {
+		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
+	}
+
 	void Draw(spine::Vector<float> vertices, spine::Vector<int> indices)
 	{
 		glBindVertexArray(VAO);
@@ -114,6 +142,12 @@ namespace Renderer {
 	std::unique_ptr<GLuint[]> ReadPixelsR32UI() {
 		std::unique_ptr<GLuint[]> pixels(new GLuint[SCR_WIDTH * SCR_HEIGHT]);
 		glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GLFormat[1][1], GLFormat[1][2], pixels.get());
+		return pixels;
+	}
+
+	std::unique_ptr<GLubyte[]> ReadPixelsR8UI() {
+		std::unique_ptr<GLubyte[]> pixels(new GLubyte[SCR_WIDTH * SCR_HEIGHT]);
+		glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GLFormat[2][1], GLFormat[2][2], pixels.get());
 		return pixels;
 	}
 

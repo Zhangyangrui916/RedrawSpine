@@ -25,6 +25,9 @@ spine::SkeletonDrawable::SkeletonDrawable(char* skeletonJsonPath, char* atlasPat
 	AtlasAttachmentLoader* attachmentLoader = new AtlasAttachmentLoader(atlas);
 	SkeletonJson* json = new SkeletonJson(attachmentLoader);
 	SkeletonData* skeletonData = json->readSkeletonDataFile(skeletonJsonPath);
+	if (skeletonData == nullptr) {
+		std::cout << "skeletonData is nullptr, the json path may be wrong";
+	}
 	init(skeletonData, nullptr);
 }
 
@@ -57,23 +60,25 @@ void SkeletonDrawable::draw() {
 		if (!attachment) continue;
 
 		if (NeedDrawAttachments.size() > 0) {	//没说要绘制的attachment，就绘制全部
-			for (auto& attachmentName : NeedDrawAttachments) {
-				if (attachment->getName().buffer() == attachmentName) {
-					int slotIndex = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) {
-						auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
-						return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
-						}) - skeleton->getSlots().begin();
-					bool skipRedraw = std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), [&attachmentName](const std::string& skipAttachmentName) {
-						return attachmentName == skipAttachmentName;
-						});
-					if (skipRedraw){
-						slotIndex = 65535;
-					}
-					Renderer::shader->setInt("u_slotIndex", slotIndex);
-					goto DRAWSLOT;
-				}
+			auto iter = std::find_if(NeedDrawAttachments.begin(), NeedDrawAttachments.end(), [&attachment](const std::string& attachmentName) {
+				return attachment->getName().buffer() == attachmentName;
+				});
+			if (iter == NeedDrawAttachments.end()) continue;
+			auto& attachmentName = *iter;
+
+			int slotIndex = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) {
+				auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
+				return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
+				}) - skeleton->getSlots().begin();
+			bool skipRedraw = std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), [&attachmentName](const std::string& skipAttachmentName) {
+				return attachmentName == skipAttachmentName;
+				});
+			if (skipRedraw){
+				slotIndex = 65535;
 			}
-			continue;
+			Renderer::shader->setInt("u_slotIndex", slotIndex);
+			goto DRAWSLOT;
+
 		}
 	DRAWSLOT:
 

@@ -18,5 +18,11 @@ namespace Renderer {
 
 	std::unique_ptr<GLubyte[]> ReadPixelsRGBA();
 	std::unique_ptr<GLuint[]> ReadPixelsR32UI();
+	std::unique_ptr<GLubyte[]> ReadPixelsR8UI();
+
+	void StartDrawCTRL();
+	void EndDrawCTRL();
+
+
 };
 
