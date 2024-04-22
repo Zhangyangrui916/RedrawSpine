@@ -14,6 +14,11 @@
 #include "utility.cuh"
 #include <stb_image.h>
 
+namespace cleanAttachment {
+    void init();
+    void clean(spine::Attachment* attachment);
+}
+
 static void save_to_file(void* data, int lengthInBytes, const char* filename) {
     std::ofstream out(filename, std::ios::binary);
     if (out.is_open()) {
@@ -93,7 +98,6 @@ int main(int argc, char* argv[]) {
     }
     glfwMakeContextCurrent(window);
 
-    // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
@@ -108,6 +112,14 @@ int main(int argc, char* argv[]) {
         drawable.stdoutAABB();
 		return 0;
 	}
+    else if (strcmp(argv[3], "cleanAttachment") == 0) {
+        cleanAttachment::init();
+        auto& entries = drawable.skeleton->getData()->getDefaultSkin()->getAttachments();
+        while (entries.hasNext()) {
+            cleanAttachment::clean(entries.next()._attachment);
+        }
+        return 0;
+    }
     else {
         Renderer::init(argv[3], argv[4]);
     }
@@ -141,35 +153,83 @@ int main(int argc, char* argv[]) {
             auto& [currentPoseUVMapPath, nextposePath] = [&]() -> std::pair<std::string, std::string> {
                 std::ifstream file(uvMapPath + std::string("/sequence.txt"));
                 std::string line1, line2;
-                for (int i = 0; i <= frame; ++i)std::getline(file, line1);
+                for (int i = 0; i <= frame; ++i) std::getline(file, line1);
                 std::getline(file, line2);
                 file.close();
                 return {line1, line2};
             }();
             std::unique_ptr<GLuint[]> currentPoseUVMap((GLuint*)(load_from_file(currentPoseUVMapPath.c_str())));
+
+            constexpr int SAME_ATTA_THRESHOLD = 40;
+
             for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
                 for (int j = 0; j < Renderer::SCR_WIDTH; j++) {
                     int index = i * Renderer::SCR_WIDTH + j;
                     unsigned int Id_V_U = currentPoseUVMap[index];
                     if (Id_V_U == 0) continue;
-                    //unsigned int U = Id_V_U & 0xFFF;
-                    //unsigned int V = (Id_V_U >> 12) & 0xFFF;
+
+                    //检查邻域是否有其他部件的像素, 若是则检查反向像素颜色是否一致，若不一致则跳过
+                    if (index - 1 > 0) {
+						unsigned int Id_V_U_left = currentPoseUVMap[index - 1];
+                        if ((Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+							int deltaR = renderResult[index * 3 + 0] - renderResult[(index + 1) * 3 + 0];
+                            int deltaG = renderResult[index * 3 + 1] - renderResult[(index + 1) * 3 + 1];
+                            int deltaB = renderResult[index * 3 + 2] - renderResult[(index + 1) * 3 + 2];
+                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+								continue;
+							}
+						}
+					}
+                    if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+                        unsigned int Id_V_U_right = currentPoseUVMap[index + 1];
+                        if ((Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+							int deltaR = renderResult[index * 3 + 0] - renderResult[(index - 1) * 3 + 0];
+							int deltaG = renderResult[index * 3 + 1] - renderResult[(index - 1) * 3 + 1];
+							int deltaB = renderResult[index * 3 + 2] - renderResult[(index - 1) * 3 + 2];
+                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+								continue;
+							}
+						}
+                    }
+                    if (index - Renderer::SCR_WIDTH > 0) {
+						unsigned int Id_V_U_up = currentPoseUVMap[index - Renderer::SCR_WIDTH];
+                        if ((Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+                            int deltaR = renderResult[index * 3 + 0] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 0];
+                            int deltaG = renderResult[index * 3 + 1] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 1];
+                            int deltaB = renderResult[index * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
+                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+								continue;
+							}
+                        }
+                    }
+                    if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+                        unsigned int Id_V_U_down = currentPoseUVMap[index + Renderer::SCR_WIDTH];
+                        if ((Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+							int deltaR = renderResult[index * 3 + 0] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 0];
+							int deltaG = renderResult[index * 3 + 1] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 1];
+							int deltaB = renderResult[index * 3 + 2] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2];
+                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+								continue;
+							}
+						}
+                    }
+
                     unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
                     auto& [pixels, texture] = slotIndex2Pixels[Id];
                     int width = texture->width;
-                    pixels[/*(V * width + U)*/ AttachmentPixelIndex * 4 + 0] = renderResult[index * 3 + 0];
-                    pixels[/*(V * width + U)*/ AttachmentPixelIndex * 4 + 1] = renderResult[index * 3 + 1];
-                    pixels[/*(V * width + U)*/ AttachmentPixelIndex * 4 + 2] = renderResult[index * 3 + 2];
+                    pixels[AttachmentPixelIndex * 4 + 0] = renderResult[index * 3 + 0];
+                    pixels[AttachmentPixelIndex * 4 + 1] = renderResult[index * 3 + 1];
+                    pixels[AttachmentPixelIndex * 4 + 2] = renderResult[index * 3 + 2];
                 }
             }
 
-            if (frame == 0) {
-                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
-                    auto& [pixels, texture] = pixels_texture;
-                    floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height);
-                }
-            }
+            //if (frame == 0) {
+            //    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+            //        auto& [pixels, texture] = pixels_texture;
+            //        floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height);
+            //    }
+            //}
 
             for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
 				auto& [pixels, texture] = pixels_texture;
@@ -249,19 +309,43 @@ int main(int argc, char* argv[]) {
     //stbi_write_png("uv/restPose.png", Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, rgb.get(), Renderer::SCR_WIDTH * 3);
     for (std::unique_ptr<GLuint[]> uvPose = std::move(restPose), nextuvPose; uvPose; uvPose = std::move(nextuvPose)) {
         
-        // 2. 对于所有uvPose上出现过的uv，设为128
+        // 2. 对于所有uvPose上出现过的uv，设为128   // 对于部件边缘的像素，因为不可靠，所以假设我们没画过，跳过设置，以求下次inpaint再画
         for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
             for (int j = 0; j < Renderer::SCR_WIDTH; j++) {
                 int index = i * Renderer::SCR_WIDTH + j;
                 unsigned int Id_V_U = uvPose[index];
                 if (Id_V_U == 0) continue;
-                //unsigned int U = Id_V_U & 0xFFF;
-                //unsigned int V = (Id_V_U >> 12) & 0xFFF;
+
+                //检查邻域是否有其他部件的像素, 若是则跳过
+                if (index - 1 > 0) {
+                    unsigned int Id_V_U_left = uvPose[index - 1];
+                    if (Id_V_U_left != 0 && (Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+						continue;
+					}
+                }
+                if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+					unsigned int Id_V_U_right = uvPose[index + 1];
+					if (Id_V_U_right != 0 && (Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+                        continue;
+                    }
+                }
+                if (index - Renderer::SCR_WIDTH > 0) {
+                    unsigned int Id_V_U_up = uvPose[index - Renderer::SCR_WIDTH];
+                    if (Id_V_U_up != 0 && (Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+						continue;
+					}
+                }
+                if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+					unsigned int Id_V_U_down = uvPose[index + Renderer::SCR_WIDTH];
+                    if (Id_V_U_down != 0 && (Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+                        continue;
+                    }
+                }
                 unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                 unsigned int Id = (Id_V_U >> 24) & 0xFF;
                 auto& [pixels, texture] = slotIndex2Pixels[Id];
                 int width = texture->width;
-                pixels[/*(V * width + U)*/AttachmentPixelIndex] = 128;
+                pixels[AttachmentPixelIndex] = 128;
             }
         }
 

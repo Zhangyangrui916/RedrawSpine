@@ -189,8 +189,9 @@ void spine::SkeletonDrawable::stdoutAABB()
 	std::cout << minx << "," << miny << "," << maxw << "," << maxh;
 }
 
-static std::unique_ptr<GLubyte[]> GetTexImage(Texture* texture, int format)
+std::unique_ptr<GLubyte[]> spine::GetTexImage(Texture* texture, int format)
 {
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	if (format == GL_RGBA) {
 		std::unique_ptr<GLubyte[]> pixels(new GLubyte[texture->width * texture->height * 4]);
 		glBindTexture(GL_TEXTURE_2D, texture->textureID);

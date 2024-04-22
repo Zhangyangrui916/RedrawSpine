@@ -21,4 +21,6 @@ std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height);
 
 void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height);
 
+std::unique_ptr<GLubyte[]> cleanRGBAPixelsNotMasked(std::unique_ptr<GLubyte[]> pixels, std::unique_ptr<GLubyte[]> mask, int width, int height);
+
 #endif

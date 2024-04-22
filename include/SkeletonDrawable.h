@@ -40,4 +40,6 @@ namespace spine {
 		Vector<int> glIndices;
 		Vector<float> glVertices;
 	};
+
+	std::unique_ptr<GLubyte[]> GetTexImage(Texture* texture, int format);
 }

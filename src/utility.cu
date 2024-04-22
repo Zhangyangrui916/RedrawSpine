@@ -146,13 +146,6 @@ std::unique_ptr<GLubyte[]> decodeUVToRGB(GLuint* uv, int width, int height)
 
 
 
-__global__ void decodeUVToMaskKernel(GLuint* uv, int size, GLubyte* gray) {
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	if (x < size && uv[x] > 0) {
-		gray[x] = 255;
-	}
-}
-
 constexpr int filterWidth = 11;
 constexpr float TwoSigmaSquare = 10.f;
 constexpr int windowSize = (filterWidth - 1) * 2;
@@ -241,6 +234,15 @@ __global__ void DilateGaussianBlur1(GLubyte* input, GLubyte* output, int width, 
 			}
 		}
 		output[y * width + x] = sum;
+	}
+}
+
+
+
+__global__ void decodeUVToMaskKernel(GLuint* uv, int size, GLubyte* gray) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	if (x < size && uv[x] > 0) {
+		gray[x] = 255;
 	}
 }
 
@@ -461,4 +463,40 @@ RECURSIVE_FLOOD:
 	cudaDeviceSynchronize();
 	cudaFree(d_input);
 	cudaFree(d_count);
+}
+
+__global__ void cleanRGBAPixelsNotMaskedKernel(GLubyte* pixels, GLubyte* mask, int width, int height) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+	if (x < width && y < height) {
+		if (mask[y * width + x] == 0) {
+			pixels[(y * width + x) * 4 + 0] = 0;
+			pixels[(y * width + x) * 4 + 1] = 0;
+			pixels[(y * width + x) * 4 + 2] = 0;
+			pixels[(y * width + x) * 4 + 3] = 0;
+		}
+	}
+}
+
+std::unique_ptr<GLubyte[]> cleanRGBAPixelsNotMasked(std::unique_ptr<GLubyte[]> pixels, std::unique_ptr<GLubyte[]> mask, int width, int height)
+{
+	GLubyte* d_pixels;
+	cudaMalloc(&d_pixels, width * height * 4 * sizeof(GLubyte));
+	cudaMemcpy(d_pixels, pixels.get(), width * height * 4 * sizeof(GLubyte), cudaMemcpyHostToDevice);
+
+	GLubyte* d_mask;
+	cudaMalloc(&d_mask, width * height * sizeof(GLubyte));
+	cudaMemcpy(d_mask, mask.get(), width * height * sizeof(GLubyte), cudaMemcpyHostToDevice);
+
+	dim3 block(16, 16);
+	dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+	cleanRGBAPixelsNotMaskedKernel<<<grid, block>>>(d_pixels, d_mask, width, height);
+
+	cudaMemcpy(pixels.get(), d_pixels, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
+	cudaFree(d_pixels);
+	cudaFree(d_mask);
+
+	return std::move(pixels);
 }
