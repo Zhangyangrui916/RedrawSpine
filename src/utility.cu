@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "stb_image_write.h"
 #include <memory>
+#include <npp.h>
+
 #define LOW_ALPHA_THRESHOLD 8
 
 
@@ -294,6 +296,44 @@ std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height)
 	return std::move(gray);
 }
 
+__global__ void decodeUVToSlotKernel(GLuint* uv, int width, int height, GLubyte* d_rgb) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	GLuint Slot_V_U = uv[x];
+	char slot = Slot_V_U >> 24;
+	char r = slot + 11;
+	char b = slot * 2 + 33;
+	char g = slot * 3 + 55;
+	d_rgb[x * 3] = r;
+	d_rgb[x * 3 + 1] = g;
+	d_rgb[x * 3 + 2] = b;
+}
+
+std::unique_ptr<GLubyte[]> decodeUVToSlot(GLuint* uv, int width, int height)
+{
+	int size = width * height;
+	std::unique_ptr<GLubyte[]> rgb(new GLubyte[size*3]);
+	int block_size = 256;
+
+	GLuint* d_uv;
+	GLubyte* d_rgb;
+
+	cudaMalloc((void**)&d_uv, size * sizeof(GLuint));
+	cudaMemcpy(d_uv, uv, size * sizeof(GLuint), cudaMemcpyHostToDevice);
+
+	cudaMalloc((void**)&d_rgb, size * 3 * sizeof(GLubyte));
+	cudaMemset(d_rgb, 0, size * 3 * sizeof(GLubyte));
+
+	int grid_size = (size + block_size - 1) / block_size;
+	decodeUVToSlotKernel<<<grid_size, block_size>>> ((GLuint*)d_uv, width, height, d_rgb);
+
+	cudaMemcpy(rgb.get(), d_rgb, size * 3 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
+	cudaFree(d_uv);
+	cudaFree(d_rgb);
+
+	return rgb;
+}
+
 
 
 __global__ void cannyKernel(GLubyte* input, GLubyte* output, int width, int height) {
@@ -465,6 +505,137 @@ RECURSIVE_FLOOD:
 	cudaFree(d_count);
 }
 
+__global__ void fillDstEdges(unsigned char* d_imgSrc, int width, int height, char neighbourThreshold, char windowHalfSize, int* count_d) {
+
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+	// 超出边界或者不为白色的像素不处理
+	int idx = (y * width + x) * 4;
+	if (x >= width || y >= height || d_imgSrc[idx] != 255 || d_imgSrc[idx+1] != 255 || d_imgSrc[idx+2] != 255 || d_imgSrc[idx+3] == 0 ) {
+		return;
+	}
+
+	// 处理白色图案的边缘像素（要求邻域内已知像素数量超过阈值）
+	char neighbourCount = 0;
+	for (int i = -1; i <= 1; i++) {
+		for (int j = -1; j <= 1; j++) {
+			if (i == 0 && j == 0) {
+				continue;
+			}
+			int neighbourX = x + i;
+			int neighbourY = y + j;
+			if (neighbourX < 0 || neighbourX >= width || neighbourY < 0 || neighbourY >= height) {
+				continue;
+			}
+			int neighborIdx = (neighbourY * width + neighbourX) * 4;
+			if(d_imgSrc[neighborIdx + 3] > 0 && (d_imgSrc[neighborIdx] != 255 || d_imgSrc[neighborIdx+1] != 255 || d_imgSrc[neighborIdx+2] != 255)) {
+				neighbourCount++;	//不透明且不为白色
+			}
+
+		}
+	}
+	if (neighbourCount < neighbourThreshold) {
+		return;
+	}
+
+	// 确定哪些像素不参与distance计算
+	char windowSize = windowHalfSize * 2 + 1;
+
+	char* skip = new char[windowSize * windowSize];
+
+	for (int i = -windowHalfSize; i <= windowHalfSize; i++) {
+		for (int j = -windowHalfSize; j <= windowHalfSize; j++) {
+			int neighbourX = x + i;
+			int neighbourY = y + j;
+			int neighbourIdx = (neighbourY * width + neighbourX) * 4;
+			if (neighbourX < 0 || neighbourX >= width || neighbourY < 0 || neighbourY >= height || /*is whit pixel*/(d_imgSrc[neighbourIdx] == 255 && d_imgSrc[neighbourIdx + 1] == 255 && d_imgSrc[neighbourIdx + 2] == 255)) {
+				skip[(j + windowHalfSize) * windowSize + (i + windowHalfSize)] = 1;
+			}
+			else {
+				skip[(j + windowHalfSize) * windowSize + (i + windowHalfSize)] = 0;
+			}
+		}
+	}
+
+	// 遍历srcMask非零区域，计算distance
+	float minialDistance = 8000000;
+	int minialDistanceX = -1;
+	int minialDistanceY = -1;
+	for (int i = max(windowHalfSize, x - 64); i < min(width - windowHalfSize, x + 64); i++) {
+		for (int j = max(windowHalfSize, y - 64); j < min(height - windowHalfSize, y + 64); j++) {
+			int neighborIdx = (j * width + i) * 4;
+			if (d_imgSrc[neighborIdx + 3] > 0 && (d_imgSrc[neighborIdx] != 255 || d_imgSrc[neighborIdx + 1] != 255 || d_imgSrc[neighborIdx + 2] != 255)) {
+
+				float distance = 0;
+				for (int ii = -windowHalfSize; ii <= windowHalfSize; ii++) {
+					for (int jj = -windowHalfSize; jj <= windowHalfSize; jj++) {
+						if (skip[(jj + windowHalfSize) * windowSize + (ii + windowHalfSize)] == 1) {
+							continue;
+						}
+						float channelTotal = 0;
+						int index1 = ((j + jj) * width + (i + ii)) * 4;
+						int index2 = ((y + jj) * width + (x + ii)) * 4;
+						channelTotal += abs(d_imgSrc[index1] - d_imgSrc[index2]);
+						channelTotal += abs(d_imgSrc[index1 + 1] - d_imgSrc[index2 + 1]);
+						channelTotal += abs(d_imgSrc[index1 + 2] - d_imgSrc[index2 + 2]);
+						distance += channelTotal / (sqrtf((float)ii * ii + jj * jj) + 0.1);
+					}
+				}
+				if (distance < minialDistance) {
+					minialDistance = distance;
+					minialDistanceX = i;
+					minialDistanceY = j;
+				}
+			}
+		}
+	}
+	delete[] skip;
+
+	// 将最小距离的像素值赋给当前像素
+	d_imgSrc[idx] = d_imgSrc[(minialDistanceY * width + minialDistanceX) * 4];
+	d_imgSrc[idx + 1] = d_imgSrc[(minialDistanceY * width + minialDistanceX) * 4 + 1];
+	d_imgSrc[idx + 2] = d_imgSrc[(minialDistanceY * width + minialDistanceX) * 4 + 2];
+	d_imgSrc[idx + 3] = d_imgSrc[(minialDistanceY * width + minialDistanceX) * 4 + 3];
+
+	(*count_d)++; //atomicAdd(count_d, 1);
+}
+
+void growImg(unsigned char* imgSrcData, int width, int height) {
+	unsigned char* d_imgSrc;
+	cudaMalloc(&d_imgSrc, width * height * 4 * sizeof(unsigned char));
+	cudaMemcpy(d_imgSrc, imgSrcData, width * height * 4 * sizeof(unsigned char), cudaMemcpyHostToDevice);
+
+	int* count_d;
+	cudaMalloc((void**)&count_d, sizeof(int));
+
+RecursiveFillDstEdge:
+
+	cudaMemset(count_d, 0, sizeof(int));
+
+	{
+		cudaPerfCounter perfCounter;
+		dim3 block(16, 16);
+		dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+		fillDstEdges << <grid, block >> > (d_imgSrc, width, height, 1, 15, count_d);
+		perfCounter.stopCounter();
+		printf("fillDstEdges elapsed time: %f\n", perfCounter.elapsed());
+	}
+
+	int count_h = -1;
+	cudaMemcpy(&count_h, count_d, sizeof(int), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
+
+	if (count_h != 0) {
+		goto RecursiveFillDstEdge;
+	}
+	cudaMemcpy(imgSrcData, d_imgSrc, width * height * 4 * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
+	cudaFree(d_imgSrc);
+	cudaFree(count_d);
+
+}
+
 __global__ void cleanRGBAPixelsNotMaskedKernel(GLubyte* pixels, GLubyte* mask, int width, int height) {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -499,4 +670,55 @@ std::unique_ptr<GLubyte[]> cleanRGBAPixelsNotMasked(std::unique_ptr<GLubyte[]> p
 	cudaFree(d_mask);
 
 	return std::move(pixels);
+}
+
+
+void rgb2hsv(GLubyte* pixels, int width, int height) {
+	NppiSize size;
+	size.width = width;
+	size.height = height;
+
+	// 分配设备内存
+	Npp8u* d_src, * d_dst;
+	cudaMalloc(&d_src, width * height * 3 * sizeof(Npp8u));
+	cudaMalloc(&d_dst, width * height * 3 * sizeof(Npp8u));
+
+	// 将RGB图像复制到设备内存
+	cudaMemcpy(d_src, pixels, width * height * 3 * sizeof(Npp8u), cudaMemcpyHostToDevice);
+
+	// 转换颜色空间
+	NppStatus status = nppiRGBToHSV_8u_C3R(d_src, width * 3, d_dst, width * 3, size);
+
+
+	// 将HSV图像复制回主机内存
+	cudaMemcpy(pixels, d_dst, size.width * size.height * 3 * sizeof(Npp8u), cudaMemcpyDeviceToHost);
+
+	// 释放设备内存
+	cudaFree(d_src);
+	cudaFree(d_dst);
+}
+
+void hsv2rgb(GLubyte* pixels, int width, int height) {
+
+	NppiSize size;
+	size.width = width;
+	size.height = height;
+
+	// 分配设备内存
+	Npp8u* d_src, * d_dst;
+	cudaMalloc(&d_src, size.width * size.height * 3 * sizeof(Npp8u));
+	cudaMalloc(&d_dst, size.width * size.height * 3 * sizeof(Npp8u));
+
+	// 将RGB图像复制到设备内存
+	cudaMemcpy(d_src, pixels, size.width * size.height * 3 * sizeof(Npp8u), cudaMemcpyHostToDevice);
+
+	// 转换颜色空间
+	NppStatus status = nppiHSVToRGB_8u_C3R(d_src, size.width * 3, d_dst, size.width * 3, size);
+
+	// 将HSV图像复制回主机内存
+	cudaMemcpy(pixels, d_dst, size.width * size.height * 3 * sizeof(Npp8u), cudaMemcpyDeviceToHost);
+
+	// 释放设备内存
+	cudaFree(d_src);
+	cudaFree(d_dst);
 }

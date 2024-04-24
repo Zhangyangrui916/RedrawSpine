@@ -19,8 +19,13 @@ std::unique_ptr<GLubyte[]> decodeUVToRGB(GLuint* uv, int width, int height);
 
 std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height);
 
+std::unique_ptr<GLubyte[]> decodeUVToSlot(GLuint* uv, int width, int height);
+
 void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height);
+void growImg(unsigned char* imgSrcData, int width, int height);
 
 std::unique_ptr<GLubyte[]> cleanRGBAPixelsNotMasked(std::unique_ptr<GLubyte[]> pixels, std::unique_ptr<GLubyte[]> mask, int width, int height);
 
+void rgb2hsv(GLubyte* pixels, int width, int height);
+void hsv2rgb(GLubyte* pixels, int width, int height);
 #endif

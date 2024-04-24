@@ -20,7 +20,7 @@ if(POLICY CMP0146)
   cmake_policy(SET CMP0146 OLD) 
 endif()
 find_package(CUDA REQUIRED)
-set(LIBS ${LIBS} ${CUDA_LIBRARIES})
+set(LIBS ${LIBS} ${CUDA_LIBRARIES} ${CUDA_npp_LIBRARY})
 set(CMAKE_CUDA_STANDARD 17)
 
 add_library(STB_IMAGE "stb_image/stb_image.cpp")

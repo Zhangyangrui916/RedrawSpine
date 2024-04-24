@@ -159,60 +159,160 @@ int main(int argc, char* argv[]) {
                 return {line1, line2};
             }();
             std::unique_ptr<GLuint[]> currentPoseUVMap((GLuint*)(load_from_file(currentPoseUVMapPath.c_str())));
+            //auto rgbslot = decodeUVToSlot(currentPoseUVMap.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+            //stbi_write_png(std::string("rgbslot.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, rgbslot.get(), Renderer::SCR_WIDTH * 3);
+
+            auto start = std::chrono::high_resolution_clock::now();
+            rgb2hsv(renderResult, Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+            auto end = std::chrono::high_resolution_clock::now();
+            auto timeelapsed =  std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << timeelapsed <<std::endl;
+
+            {//剔除rgb中边缘像素.(假如uvmap附近有其他部件\rgb附近梯度较大)
+                auto out = std::make_unique<GLubyte[]>(Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT);
+                std::fill_n(out.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT, 0);
+                int windowSize = 5;
+                for (int i = 1; i < Renderer::SCR_HEIGHT-1; i++) {
+                    for (int j = 1; j < Renderer::SCR_WIDTH-1; j++) {
+                        int index = i * Renderer::SCR_WIDTH + j;
+                        unsigned char red = renderResult[index * 3];
+                        unsigned char green = renderResult[index * 3 + 1];
+                        unsigned char blue = renderResult[index * 3 + 2];
+
+                        //查看周围是否有不同slot的像素
+                        unsigned int Id_V_U = currentPoseUVMap[index];
+                        if (Id_V_U == 0) continue;
+                        unsigned int myId = Id_V_U & 0xFF000000;
+
+                        for(int ii=-2;ii<=2;ii++){
+							for(int jj=-2;jj<=2;jj++){
+                                if(i+ii<0 || i+ii>=Renderer::SCR_HEIGHT || j+jj<0 || j+jj>=Renderer::SCR_WIDTH) continue;
+								int neighborIndex = (i + ii) * Renderer::SCR_WIDTH + j + jj;
+								if (ii == 0 && jj == 0) continue;
+								if ((currentPoseUVMap[neighborIndex] & 0xFF000000) != myId) {
+                                    goto THIS_PIXEL_AT_EDGE;
+								}
+							}
+						}
+                        continue;   // if not at edge, don't handle it
+THIS_PIXEL_AT_EDGE:
+
+                        //calculate the gradient of the pixel
+                        int gradValX = renderResult[(index - 1) * 3 + 2] - renderResult[(index + 1) * 3 + 2];
+                        int gradValY = renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
+                        int gradVal = gradValX * gradValX + gradValY * gradValY;
+                        int gradHueX = renderResult[(index - 1) * 3] - renderResult[(index + 1) * 3];
+                        int gradHueY = renderResult[(index - Renderer::SCR_WIDTH) * 3] - renderResult[(index + Renderer::SCR_WIDTH) * 3];
+                        int gradHue = gradHueX * gradHueX + gradHueY * gradHueY;
+  
+                        if (gradVal > 3000 || gradHue > 3000) {
+                            out[index] = 255;
+                            continue;
+                        }
+
+                        int mini = std::max(0, i - windowSize);
+                        int maxi = std::min(Renderer::SCR_HEIGHT - 1, i + windowSize);
+                        int minj = std::max(0, j - windowSize);
+                        int maxj = std::min(Renderer::SCR_WIDTH - 1, j + windowSize);
+
+
+                        int sameslotcount = 0, notsameslotcount = 0;
+                        for (int ii = mini; ii <= maxi; ii++) {
+                            for (int jj = minj; jj <= maxj; jj++) {
+								int neighborIndex = ii * Renderer::SCR_WIDTH + jj;
+								if (ii == i && jj == j) continue;
+                                unsigned int Id_V_U_neighbor = currentPoseUVMap[neighborIndex];
+                                int deltaH = renderResult[neighborIndex * 3] - red;
+                                int deltaS = renderResult[neighborIndex * 3 + 1] - green;
+                                int deltaBlue = renderResult[neighborIndex * 3 + 2] - blue;
+                                if (/*deltaBlue * deltaBlue*/ + deltaS * deltaS + deltaH * deltaH < 200) {
+                                    if ((Id_V_U_neighbor & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+										notsameslotcount++;
+                                    }
+                                    else {
+                                        sameslotcount++;
+                                    }
+								}
+
+							}
+						}
+                        if (notsameslotcount != 0 && notsameslotcount + 3 > sameslotcount) {
+                            out[index] = 255;
+                            //currentPoseUVMap[index] = 0;
+                        }
+                    
+                    
+                    
+                    
+                    }
+                }
+                //stbi_write_png(std::string("out.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, out.get(), Renderer::SCR_WIDTH * 1);
+                for(int i=0; i< Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT; i++){
+					if(out[i] == 255){
+						//renderResult[i * 3] = 0;
+						//renderResult[i * 3 + 1] = 0;
+						//renderResult[i * 3 + 2] = 0;
+                        currentPoseUVMap[i] = 0;
+					}
+				}
+            }
+            hsv2rgb(renderResult, Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+            //stbi_write_png(std::string("1.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, renderResult, Renderer::SCR_WIDTH * 3);
+
 
             constexpr int SAME_ATTA_THRESHOLD = 40;
-
+            start = std::chrono::high_resolution_clock::now();
             for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
                 for (int j = 0; j < Renderer::SCR_WIDTH; j++) {
                     int index = i * Renderer::SCR_WIDTH + j;
                     unsigned int Id_V_U = currentPoseUVMap[index];
                     if (Id_V_U == 0) continue;
 
-                    //检查邻域是否有其他部件的像素, 若是则检查反向像素颜色是否一致，若不一致则跳过
-                    if (index - 1 > 0) {
-						unsigned int Id_V_U_left = currentPoseUVMap[index - 1];
-                        if ((Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-							int deltaR = renderResult[index * 3 + 0] - renderResult[(index + 1) * 3 + 0];
-                            int deltaG = renderResult[index * 3 + 1] - renderResult[(index + 1) * 3 + 1];
-                            int deltaB = renderResult[index * 3 + 2] - renderResult[(index + 1) * 3 + 2];
-                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-								continue;
-							}
-						}
-					}
-                    if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-                        unsigned int Id_V_U_right = currentPoseUVMap[index + 1];
-                        if ((Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-							int deltaR = renderResult[index * 3 + 0] - renderResult[(index - 1) * 3 + 0];
-							int deltaG = renderResult[index * 3 + 1] - renderResult[(index - 1) * 3 + 1];
-							int deltaB = renderResult[index * 3 + 2] - renderResult[(index - 1) * 3 + 2];
-                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-								continue;
-							}
-						}
-                    }
-                    if (index - Renderer::SCR_WIDTH > 0) {
-						unsigned int Id_V_U_up = currentPoseUVMap[index - Renderer::SCR_WIDTH];
-                        if ((Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-                            int deltaR = renderResult[index * 3 + 0] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 0];
-                            int deltaG = renderResult[index * 3 + 1] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 1];
-                            int deltaB = renderResult[index * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
-                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-								continue;
-							}
-                        }
-                    }
-                    if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-                        unsigned int Id_V_U_down = currentPoseUVMap[index + Renderer::SCR_WIDTH];
-                        if ((Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-							int deltaR = renderResult[index * 3 + 0] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 0];
-							int deltaG = renderResult[index * 3 + 1] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 1];
-							int deltaB = renderResult[index * 3 + 2] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2];
-                            if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-								continue;
-							}
-						}
-                    }
+     //               //检查邻域是否有其他部件的像素, 若是则检查反向像素颜色是否一致，若不一致则跳过
+     //               if (index - 1 > 0) {
+					//	unsigned int Id_V_U_left = currentPoseUVMap[index - 1];
+     //                   if ((Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index + 1) * 3 + 0];
+     //                       int deltaG = renderResult[index * 3 + 1] - renderResult[(index + 1) * 3 + 1];
+     //                       int deltaB = renderResult[index * 3 + 2] - renderResult[(index + 1) * 3 + 2];
+     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+					//			continue;
+					//		}
+					//	}
+					//}
+     //               if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+     //                   unsigned int Id_V_U_right = currentPoseUVMap[index + 1];
+     //                   if ((Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index - 1) * 3 + 0];
+					//		int deltaG = renderResult[index * 3 + 1] - renderResult[(index - 1) * 3 + 1];
+					//		int deltaB = renderResult[index * 3 + 2] - renderResult[(index - 1) * 3 + 2];
+     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+					//			continue;
+					//		}
+					//	}
+     //               }
+     //               if (index - Renderer::SCR_WIDTH > 0) {
+					//	unsigned int Id_V_U_up = currentPoseUVMap[index - Renderer::SCR_WIDTH];
+     //                   if ((Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+     //                       int deltaR = renderResult[index * 3 + 0] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 0];
+     //                       int deltaG = renderResult[index * 3 + 1] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 1];
+     //                       int deltaB = renderResult[index * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
+     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+					//			continue;
+					//		}
+     //                   }
+     //               }
+     //               if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+     //                   unsigned int Id_V_U_down = currentPoseUVMap[index + Renderer::SCR_WIDTH];
+     //                   if ((Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 0];
+					//		int deltaG = renderResult[index * 3 + 1] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 1];
+					//		int deltaB = renderResult[index * 3 + 2] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2];
+     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
+					//			continue;
+					//		}
+					//	}
+     //               }
 
                     unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
@@ -223,26 +323,32 @@ int main(int argc, char* argv[]) {
                     pixels[AttachmentPixelIndex * 4 + 2] = renderResult[index * 3 + 2];
                 }
             }
+            end = std::chrono::high_resolution_clock::now();
+            timeelapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << timeelapsed << std::endl;
 
-            //if (frame == 0) {
-            //    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
-            //        auto& [pixels, texture] = pixels_texture;
-            //        floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height);
-            //    }
-            //}
+            //flood
+
+            if (frame == 0) {
+                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                    auto& [pixels, texture] = pixels_texture;
+                    //growImg(pixels.get(), texture->width, texture->height);
+                    //floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height);
+                }
+            }
 
             for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
 				auto& [pixels, texture] = pixels_texture;
 				auto& atlasPath = (texture->path);
-                size_t start_pos = atlasPath.find(".png");
-                if (start_pos != std::string::npos) {
-					atlasPath.replace(start_pos, 4, std::string("_2") + std::string(".png"));
-				}
+    //            size_t start_pos = atlasPath.find(".png");
+    //            if (start_pos != std::string::npos) {
+				//	atlasPath.replace(start_pos, 4, std::string("@2") + std::string(".png"));
+				//}
                 stbi_write_png(atlasPath.c_str(), texture->width, texture->height, 4, pixels.get(), texture->width * 4);
                 glBindTexture(GL_TEXTURE_2D, texture->textureID);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 			}
-
+            return 0;
 
             size_t pos = nextposePath.find_last_of("/\\");
             if (pos != std::string::npos) {
