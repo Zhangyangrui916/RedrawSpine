@@ -120,6 +120,28 @@ namespace Renderer {
 		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
 	}
 
+	static GLuint UVframebuffer = 0;
+	void StartDrawUV() {
+		if (UVframebuffer == 0) {
+			glGenFramebuffers(1, &UVframebuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, UVframebuffer);
+
+			GLuint renderbuffer;
+			glGenRenderbuffers(1, &renderbuffer);
+			glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
+			glRenderbufferStorage(GL_RENDERBUFFER, GLFormat[1][0], SCR_WIDTH, SCR_HEIGHT);
+
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderbuffer);
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+				std::cout << "Error! Framebuffer is not complete!" << std::endl;
+		}
+		else {
+			glBindFramebuffer(GL_FRAMEBUFFER, UVframebuffer);
+		}
+		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
+	}
+
+
 	void Draw(spine::Vector<float> vertices, spine::Vector<int> indices)
 	{
 		glBindVertexArray(VAO);

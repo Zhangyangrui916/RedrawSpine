@@ -105,6 +105,8 @@ namespace spine {
 
 			Entries getEntries();
 
+			Vector <Vector<Entry>> _buckets;
+
 		protected:
 			AttachmentMap();
 
@@ -112,7 +114,6 @@ namespace spine {
 
 			int findInBucket(Vector <Entry> &, const String &attachmentName);
 
-			Vector <Vector<Entry>> _buckets;
 		};
 
 		explicit Skin(const String &name);
@@ -153,9 +154,9 @@ namespace spine {
 
 		Vector<ConstraintData *> &getConstraints();
 
+		AttachmentMap _attachments;
 	private:
 		const String _name;
-		AttachmentMap _attachments;
 		Vector<BoneData *> _bones;
 		Vector<ConstraintData *> _constraints;
 

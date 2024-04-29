@@ -59,28 +59,14 @@ void SkeletonDrawable::draw() {
 		Attachment* attachment = slot.getAttachment();
 		if (!attachment) continue;
 
-		if (NeedDrawAttachments.size() > 0) {	//没说要绘制的attachment，就绘制全部
-			auto iter = std::find_if(NeedDrawAttachments.begin(), NeedDrawAttachments.end(), [&attachment](const std::string& attachmentName) {
-				return attachment->getName().buffer() == attachmentName;
-				});
-			if (iter == NeedDrawAttachments.end()) continue;
-			auto& attachmentName = *iter;
-
-			int slotIndex = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) {
-				auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
-				return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
-				}) - skeleton->getSlots().begin();
-			bool skipRedraw = std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), [&attachmentName](const std::string& skipAttachmentName) {
-				return attachmentName == skipAttachmentName;
-				});
-			if (skipRedraw){
-				slotIndex = 65535;
+		if (attachmentName2Index.size() > 0) {
+			auto attaName = std::string(attachment->getName().buffer());
+			auto iter = attachmentName2Index.find(attaName);
+			if (iter == attachmentName2Index.end()) {
+				continue;
 			}
-			Renderer::shader->setInt("u_slotIndex", slotIndex);
-			goto DRAWSLOT;
-
+			Renderer::shader->setInt("u_slotIndex", iter->second);
 		}
-	DRAWSLOT:
 
 		// Early out if the slot color is 0 or the bone is not active
 		if (slot.getColor().a == 0 || !slot.getBone().isActive()) {
@@ -141,6 +127,11 @@ void SkeletonDrawable::draw() {
 		uint8_t g = static_cast<uint8_t>(skeleton->getColor().g * slot.getColor().g * attachmentColor->g * 255);
 		uint8_t b = static_cast<uint8_t>(skeleton->getColor().b * slot.getColor().b * attachmentColor->b * 255);
 		uint8_t a = static_cast<uint8_t>(skeleton->getColor().a * slot.getColor().a * attachmentColor->a * 255);
+		if (a < 225) {
+			if (attachmentName2Index[attachment->getName().buffer()] != 65535) {
+				continue;
+			}
+		}
 
 		glVertices.clear();
 		for (int ii = 0; ii < verticesCount << 1; ii += 2) {
@@ -214,39 +205,64 @@ std::unique_ptr<GLubyte[]> spine::GetTexImage(Texture* texture, int format)
 std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> spine::SkeletonDrawable::GetRedrawTexImage(int format)
 {
 	std::map<int, std::tuple<std::unique_ptr<GLubyte[]>, Texture*>> slotIndex2Pixels;
-	assert(NeedDrawAttachments.size() > 0);
-	for (auto& attachmentName : NeedDrawAttachments) {
-		if (std::any_of(SkipRedrawAttachments.begin(), SkipRedrawAttachments.end(), 
-			[&attachmentName](const std::string& skipAttachmentName) {
-				return attachmentName == skipAttachmentName;
-		})) {
+	assert(attachmentName2Index.size() > 0);
+
+	for (auto& [attachmentName, idx] : attachmentName2Index) {
+		if (idx == 65535) {
 			continue;
 		}
-
-
-		auto iter = std::find_if(skeleton->getSlots().begin(), skeleton->getSlots().end(), [&attachmentName](Slot* slot) { 
-			auto SlotBindAttachmentName = slot->getData().getAttachmentName().buffer();
-			return (SlotBindAttachmentName != NULL) && (0 == strcmp(SlotBindAttachmentName, attachmentName.c_str()));
-			});
-		assert(iter != skeleton->getSlots().end());
-		int slotIndex = iter - skeleton->getSlots().begin();
-		auto attachment = (*iter)->getAttachment();
-		Texture* texture = [&attachment]() -> Texture* {
-			if (attachment->getRTTI().isExactly(MeshAttachment::rtti) ) {
-				return (Texture*)((MeshAttachment*)attachment)->getRegion()->rendererObject;
+		auto& attaEntries = skeleton->getData()->getDefaultSkin()->getAttachments();
+		while (attaEntries.hasNext()){
+			auto& entry = attaEntries.next();
+			if (0 == strcmp(entry._name.buffer(), attachmentName.c_str())) {
+				auto attachment = entry._attachment;
+				Texture* texture = [&attachment]() -> Texture* {
+					if (attachment->getRTTI().isExactly(MeshAttachment::rtti)) {
+						return (Texture*)((MeshAttachment*)attachment)->getRegion()->rendererObject;
+					}
+					else if (attachment->getRTTI().isExactly(RegionAttachment::rtti)) {
+						return (Texture*)((RegionAttachment*)attachment)->getRegion()->rendererObject;
+					}
+					else {
+						std::cout << "Not supported attachment type";
+						return nullptr;
+					}
+					}();
+				slotIndex2Pixels[idx] = std::make_tuple(std::move(GetTexImage(texture, format)), texture);
+				break;
 			}
-			else if (attachment->getRTTI().isExactly(RegionAttachment::rtti)) {
-				return (Texture*)((RegionAttachment*)attachment)->getRegion()->rendererObject;
-			}
-			else {
-				std::cout << "Not supported attachment type";
-				return nullptr;
-			}
-		}();
-
-		slotIndex2Pixels[slotIndex] = std::make_tuple(std::move(GetTexImage(texture, format)), texture);
+		}
 	}
 	return slotIndex2Pixels;
+}
+
+void spine::SkeletonDrawable::SetNeedDrawAttachments(char* attachments)
+{
+	std::istringstream iss(attachments);
+	std::string temp;
+
+	while (std::getline(iss, temp, ',')) {
+		if (temp == "@") {
+			break;
+		}
+		attachmentName2Index[temp] = attachmentName2Index.size();
+	}
+	while (std::getline(iss, temp, ',')) {
+		if (temp == "@") {
+			break;
+		}
+		attachmentName2Index[temp] = 65535;
+	}
+	attachmentName2Index_group = attachmentName2Index;
+	while (std::getline(iss, temp, ',')) {
+		std::istringstream group(temp);
+		std::string segment;
+		std::getline(group, segment, '@');
+		int groupId = attachmentName2Index_group[segment];
+		while (std::getline(group, segment, '@')) {
+			attachmentName2Index_group[segment] = groupId;
+		}
+	}
 }
 
 

@@ -11,7 +11,7 @@
 #include <memory>
 #include <tuple>
 
-std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(std::tuple<std::unique_ptr<GLubyte[]>, Texture*> rgba);
+std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(std::tuple<std::unique_ptr<GLubyte[]>, Texture*>& rgba);
 
 unsigned int countNotZero(GLuint* p, size_t size);
 
@@ -22,6 +22,7 @@ std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height);
 std::unique_ptr<GLubyte[]> decodeUVToSlot(GLuint* uv, int width, int height);
 
 void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height);
+void floodWhitePixelWithNeighborColorCPU(GLubyte* input, int width, int height);
 void growImg(unsigned char* imgSrcData, int width, int height);
 
 std::unique_ptr<GLubyte[]> cleanRGBAPixelsNotMasked(std::unique_ptr<GLubyte[]> pixels, std::unique_ptr<GLubyte[]> mask, int width, int height);

@@ -26,8 +26,10 @@ namespace spine {
 
 		Skeleton* skeleton;
 		AnimationState* animationState;
-		std::vector<std::string> NeedDrawAttachments;
-		std::vector<std::string> SkipRedrawAttachments;
+
+		void SetNeedDrawAttachments(char* attachments);
+		std::map<std::string, int> attachmentName2Index;
+		std::map<std::string, int> attachmentName2Index_group;	//group for canny
 
 		char* skeletonJsonPath;
 		char* atlasPath;

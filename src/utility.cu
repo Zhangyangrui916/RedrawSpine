@@ -42,7 +42,9 @@ __global__ void rgba_to_alpha(GLubyte* input, GLubyte* output, int width, int he
     }
 }
 
-std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(std::tuple<std::unique_ptr<GLubyte[]>, Texture*> rgba)
+// 不改变传入参数
+// 返回的结构体之所以带上Texture*,是为了指明GLubyte[]的宽高. 如果要更新到GPU请自己更新.
+std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(std::tuple<std::unique_ptr<GLubyte[]>, Texture*>& rgba)
 {
 	auto& [input, texture] = rgba;
 	int width = texture->width;
@@ -149,7 +151,7 @@ std::unique_ptr<GLubyte[]> decodeUVToRGB(GLuint* uv, int width, int height)
 
 
 constexpr int filterWidth = 11;
-constexpr float TwoSigmaSquare = 10.f;
+constexpr float TwoSigmaSquare = 50.f;
 constexpr int windowSize = (filterWidth - 1) * 2;
 __device__ float d_filter[filterWidth][filterWidth];
 __global__ void computeGaussianFilter(float TwoSigmaSquare) {
@@ -159,7 +161,7 @@ __global__ void computeGaussianFilter(float TwoSigmaSquare) {
 	int dx = threadIdx.x - (filterWidth - 1) / 2;
 	int dy = threadIdx.y - (filterWidth - 1) / 2;
 
-	d_filter[x][y] = exp(-(dx * dx + dy * dy) / TwoSigmaSquare) / (3.1415926 * TwoSigmaSquare);
+	d_filter[x][y] = exp(-(dx * dx + dy * dy) / TwoSigmaSquare);
 }
 void initGaussain() {
 	static bool inited = false;
@@ -172,7 +174,7 @@ void initGaussain() {
 	inited = true;
 }
 
-__global__ void DilateGaussianBlur(GLubyte* input, GLubyte* output, int width, int height) {
+__global__ void DilateGaussianBlurKernel(GLubyte* input, GLubyte* output, int width, int height) {
 	int bx = blockIdx.x * blockDim.x;
 	int by = blockIdx.y * blockDim.y;
 
@@ -206,8 +208,12 @@ __global__ void DilateGaussianBlur(GLubyte* input, GLubyte* output, int width, i
 				}
 			}
 		}
-		output[y * width + x] = sum;
+		output[y * width + x] = min(255, int(sum));
 	}
+}
+
+void DilateGaussianBlur() {
+
 }
 
 
@@ -283,7 +289,7 @@ std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height)
 	dim3 grid((width + block.x -1)/(block.x), (height + block.y - 1)/(block.y));
 
 	cudaPerfCounter perfCounter;
-	DilateGaussianBlur<<<grid, block>>> (d_gray, d_grayBlur, width, height);
+	DilateGaussianBlurKernel<<<grid, block>>> (d_gray, d_grayBlur, width, height);
 	perfCounter.stopCounter();
 	printf("blur: %f\n", perfCounter.elapsed());
 
@@ -300,9 +306,9 @@ __global__ void decodeUVToSlotKernel(GLuint* uv, int width, int height, GLubyte*
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	GLuint Slot_V_U = uv[x];
 	char slot = Slot_V_U >> 24;
-	char r = slot + 11;
-	char b = slot * 2 + 33;
-	char g = slot * 3 + 55;
+	char r = slot * 2311;
+	char b = slot * 2659;
+	char g = slot * 2777;
 	d_rgb[x * 3] = r;
 	d_rgb[x * 3 + 1] = g;
 	d_rgb[x * 3 + 2] = b;
@@ -473,6 +479,163 @@ __global__ void floodWhitePixelWithNeighborColorKernel(GLubyte* d_input, int wid
 	}
 }
 
+__global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int width, int height, int* d_count) {
+
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+	int y = threadIdx.y + blockIdx.y * blockDim.y;
+	int index = y * width + x;
+	if (d_input[index * 4] != 255 || d_input[index * 4 + 1] != 255 || d_input[index * 4 + 2] != 255 || d_input[index * 4 + 3] == 0) {
+		return;
+	}
+
+	int neighborcount = 0;
+	int neightborRed = 0;
+	int neightborGreen = 0;
+	int neightborBlue = 0;
+
+	if (x > 0 && d_input[(index - 1) * 4 + 3] != 0 && (d_input[(index - 1) * 4] != 255 || d_input[(index - 1) * 4 + 1] != 255 || d_input[(index - 1) * 4 + 2] != 255)) {
+		neightborRed += d_input[(index - 1) * 4];
+		neightborGreen += d_input[(index - 1) * 4 + 1];
+		neightborBlue += d_input[(index - 1) * 4 + 2];
+		neighborcount++;
+	}
+	if (x < width - 1 && d_input[(index + 1) * 4 + 3] != 0 && (d_input[(index + 1) * 4] != 255 || d_input[(index + 1) * 4 + 1] != 255 || d_input[(index + 1) * 4 + 2] != 255)) {
+		neightborRed += d_input[(index + 1) * 4];
+		neightborGreen += d_input[(index + 1) * 4 + 1];
+		neightborBlue += d_input[(index + 1) * 4 + 2];
+		neighborcount++;
+	}
+	if(y > 0) {
+		if (d_input[(index - width) * 4 + 3] != 0 && (d_input[(index - width) * 4] != 255 || d_input[(index - width) * 4 + 1] != 255 || d_input[(index - width) * 4 + 2] != 255)) {
+			neightborRed += d_input[(index - width) * 4];
+			neightborGreen += d_input[(index - width) * 4 + 1];
+			neightborBlue += d_input[(index - width) * 4 + 2];
+			neighborcount++;
+		}
+		if (x > 0 && d_input[(index - width - 1) * 4 + 3] != 0 && (d_input[(index - width - 1) * 4] != 255 || d_input[(index - width - 1) * 4 + 1] != 255 || d_input[(index - width - 1) * 4 + 2] != 255)) {
+			neightborRed += d_input[(index - width - 1) * 4];
+			neightborGreen += d_input[(index - width - 1) * 4 + 1];
+			neightborBlue += d_input[(index - width - 1) * 4 + 2];
+			neighborcount++;
+		}
+		if (x < width - 1 && d_input[(index - width + 1) * 4 + 3] != 0 && (d_input[(index - width + 1) * 4] != 255 || d_input[(index - width + 1) * 4 + 1] != 255 || d_input[(index - width + 1) * 4 + 2] != 255)) {
+			neightborRed += d_input[(index - width + 1) * 4];
+			neightborGreen += d_input[(index - width + 1) * 4 + 1];
+			neightborBlue += d_input[(index - width + 1) * 4 + 2];
+			neighborcount++;
+		}
+	}
+	if (y < height - 1){
+		if(d_input[(index + width) * 4 + 3] != 0 && (d_input[(index + width) * 4] != 255 || d_input[(index + width) * 4 + 1] != 255 || d_input[(index + width) * 4 + 2] != 255)){
+			neightborRed += d_input[(index + width) * 4];
+			neightborGreen += d_input[(index + width) * 4 + 1];
+			neightborBlue += d_input[(index + width) * 4 + 2];
+			neighborcount++;
+		}
+		if (x > 0 && d_input[(index + width - 1) * 4 + 3] != 0 && (d_input[(index + width - 1) * 4] != 255 || d_input[(index + width - 1) * 4 + 1] != 255 || d_input[(index + width - 1) * 4 + 2] != 255)) {
+			neightborRed += d_input[(index + width - 1) * 4];
+			neightborGreen += d_input[(index + width - 1) * 4 + 1];
+			neightborBlue += d_input[(index + width - 1) * 4 + 2];
+			neighborcount++;
+		}
+		if (x < width - 1 && d_input[(index + width + 1) * 4 + 3] != 0 && (d_input[(index + width + 1) * 4] != 255 || d_input[(index + width + 1) * 4 + 1] != 255 || d_input[(index + width + 1) * 4 + 2] != 255)) {
+			neightborRed += d_input[(index + width + 1) * 4];
+			neightborGreen += d_input[(index + width + 1) * 4 + 1];
+			neightborBlue += d_input[(index + width + 1) * 4 + 2];
+			neighborcount++;
+		}
+	}
+	if (neighborcount > 1) {
+		d_input[index * 4 + 2] = neightborBlue / neighborcount;
+		d_input[index * 4] = neightborRed / neighborcount;
+		d_input[index * 4 + 1] = neightborGreen / neighborcount;
+		printf("%d %d  r %d\t g: %d b %d\t count %d \n",x, y, neightborRed, neightborGreen, neightborBlue, neighborcount);
+		atomicAdd(d_count, 1);
+	}
+}
+
+void floodWhitePixelWithNeighborColorCPU(GLubyte* input, int width, int height) {
+	int count = 0;
+START:
+	count = 0;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int index = y * width + x;
+			if (input[index * 4] != 255 || input[index * 4 + 1] != 255 || input[index * 4 + 2] != 255 || input[index * 4 + 3] == 0) {
+				continue;
+			}
+			int neighborcount = 0;
+			int neightborRed = 0;
+			int neightborGreen = 0;
+			int neightborBlue = 0;
+
+			if (x > 0 && input[(index - 1) * 4 + 3] != 0 && (input[(index - 1) * 4] != 255 || input[(index - 1) * 4 + 1] != 255 || input[(index - 1) * 4 + 2] != 255)) {
+				neightborRed += input[(index - 1) * 4];
+				neightborGreen += input[(index - 1) * 4 + 1];
+				neightborBlue += input[(index - 1) * 4 + 2];
+				neighborcount++;
+			}
+			if (x < width - 1 && input[(index + 1) * 4 + 3] != 0 && (input[(index + 1) * 4] != 255 || input[(index + 1) * 4 + 1] != 255 || input[(index + 1) * 4 + 2] != 255)) {
+				neightborRed += input[(index + 1) * 4];
+				neightborGreen += input[(index + 1) * 4 + 1];
+				neightborBlue += input[(index + 1) * 4 + 2];
+				neighborcount++;
+			}
+			if (y > 0) {
+				if (input[(index - width) * 4 + 3] != 0 && (input[(index - width) * 4] != 255 || input[(index - width) * 4 + 1] != 255 || input[(index - width) * 4 + 2] != 255)) {
+					neightborRed += input[(index - width) * 4];
+					neightborGreen += input[(index - width) * 4 + 1];
+					neightborBlue += input[(index - width) * 4 + 2];
+					neighborcount++;
+				}
+				if (x > 0 && input[(index - width - 1) * 4 + 3] != 0 && (input[(index - width - 1) * 4] != 255 || input[(index - width - 1) * 4 + 1] != 255 || input[(index - width - 1) * 4 + 2] != 255)) {
+					neightborRed += input[(index - width - 1) * 4];
+					neightborGreen += input[(index - width - 1) * 4 + 1];
+					neightborBlue += input[(index - width - 1) * 4 + 2];
+					neighborcount++;
+				}
+				if (x < width - 1 && input[(index - width + 1) * 4 + 3] != 0 && (input[(index - width + 1) * 4] != 255 || input[(index - width + 1) * 4 + 1] != 255 || input[(index - width + 1) * 4 + 2] != 255)) {
+					neightborRed += input[(index - width + 1) * 4];
+					neightborGreen += input[(index - width + 1) * 4 + 1];
+					neightborBlue += input[(index - width + 1) * 4 + 2];
+					neighborcount++;
+				}
+			}
+			if (y < height - 1) {
+				if (input[(index + width) * 4 + 3] != 0 && (input[(index + width) * 4] != 255 || input[(index + width) * 4 + 1] != 255 || input[(index + width) * 4 + 2] != 255)) {
+					neightborRed += input[(index + width) * 4];
+					neightborGreen += input[(index + width) * 4 + 1];
+					neightborBlue += input[(index + width) * 4 + 2];
+					neighborcount++;
+				}
+				if (x > 0 && input[(index + width - 1) * 4 + 3] != 0 && (input[(index + width - 1) * 4] != 255 || input[(index + width - 1) * 4 + 1] != 255 || input[(index + width - 1) * 4 + 2] != 255)) {
+					neightborRed += input[(index + width - 1) * 4];
+					neightborGreen += input[(index + width - 1) * 4 + 1];
+					neightborBlue += input[(index + width - 1) * 4 + 2];
+					neighborcount++;
+				}
+				if (x < width - 1 && input[(index + width + 1) * 4 + 3] != 0 && (input[(index + width + 1) * 4] != 255 || input[(index + width + 1) * 4 + 1] != 255 || input[(index + width + 1) * 4 + 2] != 255)) {
+					neightborRed += input[(index + width + 1) * 4];
+					neightborGreen += input[(index + width + 1) * 4 + 1];
+					neightborBlue += input[(index + width + 1) * 4 + 2];
+					neighborcount++;
+				}
+			}
+			if (neighborcount > 1) {
+				input[index * 4 + 2] = neightborBlue / neighborcount;
+				input[index * 4] = neightborRed / neighborcount;
+				input[index * 4 + 1] = neightborGreen / neighborcount;
+				count++;
+			}
+		}
+	}
+	if (count > 0) {
+		goto START;
+	}
+
+}
+
+
 void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height) {
 
 	GLubyte* d_input;
@@ -487,7 +650,7 @@ void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height) {
 	dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
 
 RECURSIVE_FLOOD:
-	floodWhitePixelWithNeighborColorKernel<<<grid, block>>>(d_input, width, height, d_count);
+	floodWhitePixelWithNeighborColorKernel1 <<<grid, block>>>(d_input, width, height, d_count);
 	
 	cudaDeviceSynchronize();
 	int count = -1;
@@ -495,6 +658,9 @@ RECURSIVE_FLOOD:
 
 	cudaDeviceSynchronize();
 	if (count != 0) {
+		cudaMemcpy(input, d_input, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+		cudaDeviceSynchronize();
+		stbi_write_png(("image_out" + std::to_string(count) + ".png").c_str(), width, height, 4, input, width * 4);
 		cudaMemset(d_count, 0, sizeof(unsigned int));
 		goto RECURSIVE_FLOOD;
 	}

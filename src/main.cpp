@@ -129,17 +129,8 @@ int main(int argc, char* argv[]) {
 
     for (int i = 6; i < argc; i++) {
         std::string arg = argv[i];
-        std::string temp;
         if(0 == strcmp(argv[i], "-attachments")){
-            std::istringstream needDrawSlots(argv[++i]);
-            auto* attachments = &drawable.NeedDrawAttachments;
-            while (std::getline(needDrawSlots, temp, ',')) {
-                if (temp == "@") {
-                    attachments = &drawable.SkipRedrawAttachments;
-                    continue;
-                }
-                attachments->push_back(temp);
-            }
+            drawable.SetNeedDrawAttachments(argv[++i]);
         }
     }
 
@@ -159,8 +150,23 @@ int main(int argc, char* argv[]) {
                 return {line1, line2};
             }();
             std::unique_ptr<GLuint[]> currentPoseUVMap((GLuint*)(load_from_file(currentPoseUVMapPath.c_str())));
-            //auto rgbslot = decodeUVToSlot(currentPoseUVMap.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
-            //stbi_write_png(std::string("rgbslot.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, rgbslot.get(), Renderer::SCR_WIDTH * 3);
+            auto rgbslot = decodeUVToSlot(currentPoseUVMap.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+            stbi_write_png(std::string("rgbslot.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, rgbslot.get(), Renderer::SCR_WIDTH * 3);
+
+            std::map<int, std::unique_ptr<GLubyte[]>> Id2WrittenMask;
+            if (frame == 0) {   // gen new written mask
+                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                    auto [pixels, texture] = convertToSingleChannelOnAlpha(pixels_texture);
+                    Id2WrittenMask[Id] = std::move(pixels);
+                }
+            }
+            else { // read old written mask
+                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                    auto& [pixels, texture] = pixels_texture;
+                    auto writtenMaskFileName = texture->path;
+                    Id2WrittenMask[Id] = std::unique_ptr<GLubyte[]>((GLubyte*)load_from_file((writtenMaskFileName.replace(writtenMaskFileName.find(".png"), 4, std::string(".writtenMask"))).c_str()));
+                }
+            }
 
             auto start = std::chrono::high_resolution_clock::now();
             rgb2hsv(renderResult, Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
@@ -168,7 +174,9 @@ int main(int argc, char* argv[]) {
             auto timeelapsed =  std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             std::cout << timeelapsed <<std::endl;
 
-            {//剔除rgb中边缘像素.(假如uvmap附近有其他部件\rgb附近梯度较大)
+            //剔除rgb中边缘像素.(假如uvmap附近有其他部件\rgb附近梯度较大)
+            //剔除writtenMask写过的像素
+            {
                 auto out = std::make_unique<GLubyte[]>(Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT);
                 std::fill_n(out.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT, 0);
                 int windowSize = 5;
@@ -182,14 +190,21 @@ int main(int argc, char* argv[]) {
                         //查看周围是否有不同slot的像素
                         unsigned int Id_V_U = currentPoseUVMap[index];
                         if (Id_V_U == 0) continue;
-                        unsigned int myId = Id_V_U & 0xFF000000;
+
+                        //检查是否已经写过
+                        unsigned int myId = Id_V_U >> 24;
+                        unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
+                        if (Id2WrittenMask[myId][AttachmentPixelIndex] == 0) {
+                            currentPoseUVMap[index] = 0;
+                            //std::cout << "neverHappen";
+                        }
 
                         for(int ii=-2;ii<=2;ii++){
 							for(int jj=-2;jj<=2;jj++){
                                 if(i+ii<0 || i+ii>=Renderer::SCR_HEIGHT || j+jj<0 || j+jj>=Renderer::SCR_WIDTH) continue;
 								int neighborIndex = (i + ii) * Renderer::SCR_WIDTH + j + jj;
 								if (ii == 0 && jj == 0) continue;
-								if ((currentPoseUVMap[neighborIndex] & 0xFF000000) != myId) {
+								if ((currentPoseUVMap[neighborIndex] >> 24) != myId) {
                                     goto THIS_PIXEL_AT_EDGE;
 								}
 							}
@@ -238,20 +253,12 @@ THIS_PIXEL_AT_EDGE:
 						}
                         if (notsameslotcount != 0 && notsameslotcount + 3 > sameslotcount) {
                             out[index] = 255;
-                            //currentPoseUVMap[index] = 0;
                         }
-                    
-                    
-                    
-                    
                     }
                 }
                 //stbi_write_png(std::string("out.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, out.get(), Renderer::SCR_WIDTH * 1);
                 for(int i=0; i< Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT; i++){
 					if(out[i] == 255){
-						//renderResult[i * 3] = 0;
-						//renderResult[i * 3 + 1] = 0;
-						//renderResult[i * 3 + 2] = 0;
                         currentPoseUVMap[i] = 0;
 					}
 				}
@@ -268,72 +275,34 @@ THIS_PIXEL_AT_EDGE:
                     unsigned int Id_V_U = currentPoseUVMap[index];
                     if (Id_V_U == 0) continue;
 
-     //               //检查邻域是否有其他部件的像素, 若是则检查反向像素颜色是否一致，若不一致则跳过
-     //               if (index - 1 > 0) {
-					//	unsigned int Id_V_U_left = currentPoseUVMap[index - 1];
-     //                   if ((Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index + 1) * 3 + 0];
-     //                       int deltaG = renderResult[index * 3 + 1] - renderResult[(index + 1) * 3 + 1];
-     //                       int deltaB = renderResult[index * 3 + 2] - renderResult[(index + 1) * 3 + 2];
-     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-					//			continue;
-					//		}
-					//	}
-					//}
-     //               if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-     //                   unsigned int Id_V_U_right = currentPoseUVMap[index + 1];
-     //                   if ((Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index - 1) * 3 + 0];
-					//		int deltaG = renderResult[index * 3 + 1] - renderResult[(index - 1) * 3 + 1];
-					//		int deltaB = renderResult[index * 3 + 2] - renderResult[(index - 1) * 3 + 2];
-     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-					//			continue;
-					//		}
-					//	}
-     //               }
-     //               if (index - Renderer::SCR_WIDTH > 0) {
-					//	unsigned int Id_V_U_up = currentPoseUVMap[index - Renderer::SCR_WIDTH];
-     //                   if ((Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-     //                       int deltaR = renderResult[index * 3 + 0] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 0];
-     //                       int deltaG = renderResult[index * 3 + 1] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 1];
-     //                       int deltaB = renderResult[index * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
-     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-					//			continue;
-					//		}
-     //                   }
-     //               }
-     //               if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-     //                   unsigned int Id_V_U_down = currentPoseUVMap[index + Renderer::SCR_WIDTH];
-     //                   if ((Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-					//		int deltaR = renderResult[index * 3 + 0] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 0];
-					//		int deltaG = renderResult[index * 3 + 1] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 1];
-					//		int deltaB = renderResult[index * 3 + 2] - renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2];
-     //                       if (deltaR * deltaR + deltaG * deltaG + deltaB * deltaB > SAME_ATTA_THRESHOLD) {
-					//			continue;
-					//		}
-					//	}
-     //               }
-
                     unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
-                    auto& [pixels, texture] = slotIndex2Pixels[Id];
-                    int width = texture->width;
+                    if(Id2WrittenMask[Id][AttachmentPixelIndex] != 255) continue;
+                    Id2WrittenMask[Id][AttachmentPixelIndex] = 128;
+                    auto& [pixels, _] = slotIndex2Pixels[Id];
                     pixels[AttachmentPixelIndex * 4 + 0] = renderResult[index * 3 + 0];
                     pixels[AttachmentPixelIndex * 4 + 1] = renderResult[index * 3 + 1];
                     pixels[AttachmentPixelIndex * 4 + 2] = renderResult[index * 3 + 2];
                 }
+            }
+            for (auto& [Id, WrittenMask] : Id2WrittenMask) {
+                auto& [pixels, texture] = slotIndex2Pixels[Id];
+				auto atlasPath = (texture->path);
+				size_t start_pos = atlasPath.find(".png");
+				if (start_pos != std::string::npos) {
+					atlasPath.replace(start_pos, 4, std::string(".writtenMask"));
+				}
+				save_to_file(WrittenMask.get(), texture->width * texture->height, atlasPath.c_str());
             }
             end = std::chrono::high_resolution_clock::now();
             timeelapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             std::cout << timeelapsed << std::endl;
 
             //flood
-
-            if (frame == 0) {
+            if (frame < 3) {
                 for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
                     auto& [pixels, texture] = pixels_texture;
-                    //growImg(pixels.get(), texture->width, texture->height);
-                    //floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height);
+                    floodWhitePixelWithNeighborColorCPU(pixels.get(), texture->width, texture->height);
                 }
             }
 
@@ -348,7 +317,6 @@ THIS_PIXEL_AT_EDGE:
                 glBindTexture(GL_TEXTURE_2D, texture->textureID);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture->width, texture->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
 			}
-            return 0;
 
             size_t pos = nextposePath.find_last_of("/\\");
             if (pos != std::string::npos) {
@@ -368,6 +336,27 @@ THIS_PIXEL_AT_EDGE:
                 auto& pixels = Renderer::ReadPixelsRGBA();
                 std::string nextFramePath = directory + std::string("/") + std::to_string(++frame) + "_.png";
                 stbi_write_png(nextFramePath.c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 4, pixels.get(), Renderer::SCR_WIDTH * 4);
+
+
+
+                Renderer::StartDrawUV();
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                for (auto& [Id, pixels] : Id2WrittenMask) {
+                    auto& [_, texture] = slotIndex2Pixels[Id];
+                    glBindTexture(GL_TEXTURE_2D, texture->textureID);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texture->width, texture->height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
+                }
+                Renderer::Clear();
+                Renderer::shader->setBool("u_OnlyUndrawn", true);
+                drawable.draw();
+                auto& uvPixels = Renderer::ReadPixelsR32UI();
+                std::string uvMappingPath = uvMapPath + std::string("/") + animationName + "_" + time + ".bin";
+                save_to_file(uvPixels.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
+
+
+                auto nextMask = decodeUVToMask(uvPixels.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+                stbi_write_png((uvMapPath + std::string("/") + animationName + "_" + time + "@mask.png").c_str(),
+                    Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, nextMask.get(), Renderer::SCR_WIDTH);
             }
             else {
                 std::cout << "fail to get animation name and time from file name\n";
@@ -380,26 +369,19 @@ THIS_PIXEL_AT_EDGE:
 	}
 
 
-    // 寻找keypose
+    // ========================  preprocess  寻找keypose  ==============================
     // 0. 修改texture. 透明为0，非透明255. 然后更新到GPU. (透明与非透明的阈值为 LOW_ALPHA_THRESHOLD)
     for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
         slotIndex2Pixels[Id] = convertToSingleChannelOnAlpha(std::move(pixels_texture));
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+    for (auto& [_, pixels_texture] : slotIndex2Pixels) {
         auto& [pixels, texture] = pixels_texture;
         glBindTexture(GL_TEXTURE_2D, texture->textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texture->width, texture->height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
     }
-    // 0.5 visualize texture
-    //for (auto& [Id, textureWH] : slotIndex2Pixels) {
-    //    auto& [pixel, texture] = textureWH;
-    //    char buffer[100];
-    //    sprintf(buffer, "%d.png", Id);
-    //    stbi_write_png(buffer, texture->width, texture->height, 1, pixel.get(), texture->width * 1);
-    //}
 
-    // 1.渲染restposeUV
+    //1.0 渲染restposeUV
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
     drawable.skeleton->setToSetupPose();
@@ -411,8 +393,21 @@ THIS_PIXEL_AT_EDGE:
     std::ostringstream sequence;
     sequence << restPoseUVmapPath << std::endl;
     save_to_file(restPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, restPoseUVmapPath.c_str());
-    //auto rgb = decodeUVToRGB(restPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
-    //stbi_write_png("uv/restPose.png", Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, rgb.get(), Renderer::SCR_WIDTH * 3);
+
+    //1.1 mask
+    stbi_write_png((uvMapPath + std::string("/restPose@mask.png")).c_str(),
+        Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, decodeUVToMask(restPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT).get(), Renderer::SCR_WIDTH);
+
+    //1.2 渲染restpose controlNet输入
+    Renderer::StartDrawCTRL();
+    Renderer::Clear();
+    std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
+    drawable.draw();
+    stbi_write_png((uvMapPath + std::string("/restPose@ctrl.png")).c_str(),
+        Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, Renderer::ReadPixelsR8UI().get(), Renderer::SCR_WIDTH * 1);
+    std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
+    Renderer::EndDrawCTRL();
+
     for (std::unique_ptr<GLuint[]> uvPose = std::move(restPose), nextuvPose; uvPose; uvPose = std::move(nextuvPose)) {
         
         // 2. 对于所有uvPose上出现过的uv，设为128   // 对于部件边缘的像素，因为不可靠，所以假设我们没画过，跳过设置，以求下次inpaint再画
@@ -422,35 +417,34 @@ THIS_PIXEL_AT_EDGE:
                 unsigned int Id_V_U = uvPose[index];
                 if (Id_V_U == 0) continue;
 
-                //检查邻域是否有其他部件的像素, 若是则跳过
-                if (index - 1 > 0) {
-                    unsigned int Id_V_U_left = uvPose[index - 1];
-                    if (Id_V_U_left != 0 && (Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-						continue;
-					}
-                }
-                if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-					unsigned int Id_V_U_right = uvPose[index + 1];
-					if (Id_V_U_right != 0 && (Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-                        continue;
-                    }
-                }
-                if (index - Renderer::SCR_WIDTH > 0) {
-                    unsigned int Id_V_U_up = uvPose[index - Renderer::SCR_WIDTH];
-                    if (Id_V_U_up != 0 && (Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-						continue;
-					}
-                }
-                if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
-					unsigned int Id_V_U_down = uvPose[index + Renderer::SCR_WIDTH];
-                    if (Id_V_U_down != 0 && (Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
-                        continue;
-                    }
-                }
+     //           //检查邻域是否有其他部件的像素, 若是则跳过
+     //           if (index - 1 > 0) {
+     //               unsigned int Id_V_U_left = uvPose[index - 1];
+     //               if (Id_V_U_left != 0 && (Id_V_U_left & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+					//	continue;
+					//}
+     //           }
+     //           if (index + 1 < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+					//unsigned int Id_V_U_right = uvPose[index + 1];
+					//if (Id_V_U_right != 0 && (Id_V_U_right & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+     //                   continue;
+     //               }
+     //           }
+     //           if (index - Renderer::SCR_WIDTH > 0) {
+     //               unsigned int Id_V_U_up = uvPose[index - Renderer::SCR_WIDTH];
+     //               if (Id_V_U_up != 0 && (Id_V_U_up & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+					//	continue;
+					//}
+     //           }
+     //           if (index + Renderer::SCR_WIDTH < Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT) {
+					//unsigned int Id_V_U_down = uvPose[index + Renderer::SCR_WIDTH];
+     //               if (Id_V_U_down != 0 && (Id_V_U_down & 0xFF000000) != (Id_V_U & 0xFF000000)) {
+     //                   continue;
+     //               }
+     //           }
                 unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                 unsigned int Id = (Id_V_U >> 24) & 0xFF;
                 auto& [pixels, texture] = slotIndex2Pixels[Id];
-                int width = texture->width;
                 pixels[AttachmentPixelIndex] = 128;
             }
         }
@@ -458,18 +452,11 @@ THIS_PIXEL_AT_EDGE:
         Renderer::shader->setBool("u_OnlyUndrawn", true);
         // 3.更新texture到GPU，再渲染每帧。只渲染没画过的部分
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+        for (auto& [_, pixels_texture] : slotIndex2Pixels) {
             auto& [pixels, texture] = pixels_texture;
             glBindTexture(GL_TEXTURE_2D, texture->textureID);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texture->width, texture->height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
         }
-        // 3.5 visualize texture
-        //for (auto& [Id, textureWH] : slotIndex2Pixels) {
-        //    auto& [pixel, texture] = textureWH;
-        //    char buffer[100];
-        //    sprintf(buffer, "%d.png", Id);
-        //    stbi_write_png(buffer, texture->width, texture->height, 1, pixel.get(), texture->width * 1);
-        //}
 
         constexpr float frameTime = 0.1f;
         unsigned int maxcount = 0;
@@ -492,7 +479,7 @@ THIS_PIXEL_AT_EDGE:
                 }
             }
         }
-        if (maxcount < 256) {
+        if (maxcount < 512) {
             break;  //too few pixels
         }
         std::string uvMappingPath = uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + ".bin";
@@ -507,19 +494,21 @@ THIS_PIXEL_AT_EDGE:
 
         nextuvPose = Renderer::ReadPixelsR32UI();
 
-        save_to_file(nextuvPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
-        auto nextMask = decodeUVToMask(nextuvPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
-        stbi_write_png((uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + "@mask.png").c_str(),
-            Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, nextMask.get(), Renderer::SCR_WIDTH);
+        //save_to_file(nextuvPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
+        //auto nextMask = decodeUVToMask(nextuvPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
+        //stbi_write_png((uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + "@mask.png").c_str(),
+        //    Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, nextMask.get(), Renderer::SCR_WIDTH);
         
         Renderer::StartDrawCTRL();
         Renderer::Clear();
+        std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
         drawable.animationState->setAnimation(0, animName, true);
         drawable.update(animTime);
         drawable.draw();
         std::unique_ptr<GLubyte[]> CTRL = Renderer::ReadPixelsR8UI();
         stbi_write_png((uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + "@ctrl.png").c_str(),
             			Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, CTRL.get(), Renderer::SCR_WIDTH * 1);
+        std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
         Renderer::EndDrawCTRL();
 
     }

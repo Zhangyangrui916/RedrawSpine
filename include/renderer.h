@@ -23,6 +23,7 @@ namespace Renderer {
 	void StartDrawCTRL();
 	void EndDrawCTRL();
 
+	void StartDrawUV();
 
 };
 
