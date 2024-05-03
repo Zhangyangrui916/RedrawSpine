@@ -12,8 +12,11 @@ uniform int u_height;
 void main()
 {
     float red = texture(u_texture, v_texCoords).r;
-    // 为零时透明的
-    if (red < 0.031)
+    
+    // 假设底层是另一个alpha = 255的Attachment,那么我们应该用alpha=128作为上层Attachment与下层Attachment的边界
+    // 假设底层是背景,那么我们应该用alpha>0作为上层Attachment与背景的边界 (那么上层会比较胖)
+    // 折中在两者之间选一个阈值
+    if (red < 0.2)
     {
         discard;
     }

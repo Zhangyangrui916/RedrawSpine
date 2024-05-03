@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
             std::map<int, std::unique_ptr<GLubyte[]>> Id2WrittenMask;
             if (frame == 0) {   // gen new written mask
                 for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
-                    auto [pixels, texture] = convertToSingleChannelOnAlpha(pixels_texture);
+                    auto [pixels, texture] = convertToBinaryAlphaMask(pixels_texture);
                     Id2WrittenMask[Id] = std::move(pixels);
                 }
             }
@@ -194,9 +194,8 @@ int main(int argc, char* argv[]) {
                         //检查是否已经写过
                         unsigned int myId = Id_V_U >> 24;
                         unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
-                        if (Id2WrittenMask[myId][AttachmentPixelIndex] == 0) {
+                        if (Id2WrittenMask[myId][AttachmentPixelIndex] == WrittenState::Written) {
                             currentPoseUVMap[index] = 0;
-                            //std::cout << "neverHappen";
                         }
 
                         for(int ii=-2;ii<=2;ii++){
@@ -216,8 +215,11 @@ THIS_PIXEL_AT_EDGE:
                         int gradValX = renderResult[(index - 1) * 3 + 2] - renderResult[(index + 1) * 3 + 2];
                         int gradValY = renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
                         int gradVal = gradValX * gradValX + gradValY * gradValY;
-                        int gradHueX = renderResult[(index - 1) * 3] - renderResult[(index + 1) * 3];
-                        int gradHueY = renderResult[(index - Renderer::SCR_WIDTH) * 3] - renderResult[(index + Renderer::SCR_WIDTH) * 3];
+
+                        int gradHueX = abs(renderResult[(index - 1) * 3] - renderResult[(index + 1) * 3]);
+                        if(gradHueX > 128) gradHueX = 256 - gradHueX;
+                        int gradHueY = abs(renderResult[(index - Renderer::SCR_WIDTH) * 3] - renderResult[(index + Renderer::SCR_WIDTH) * 3]);
+                        if (gradHueY > 128) gradHueY = 256 - gradHueY;
                         int gradHue = gradHueX * gradHueX + gradHueY * gradHueY;
   
                         if (gradVal > 3000 || gradHue > 3000) {
@@ -277,14 +279,46 @@ THIS_PIXEL_AT_EDGE:
 
                     unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
-                    if(Id2WrittenMask[Id][AttachmentPixelIndex] != 255) continue;
-                    Id2WrittenMask[Id][AttachmentPixelIndex] = 128;
+                    if(Id2WrittenMask[Id][AttachmentPixelIndex] == WrittenState::Written) continue;
+                    // soft inpaint hook in
+                    Id2WrittenMask[Id][AttachmentPixelIndex] = WrittenState::Written;
                     auto& [pixels, _] = slotIndex2Pixels[Id];
                     pixels[AttachmentPixelIndex * 4 + 0] = renderResult[index * 3 + 0];
                     pixels[AttachmentPixelIndex * 4 + 1] = renderResult[index * 3 + 1];
                     pixels[AttachmentPixelIndex * 4 + 2] = renderResult[index * 3 + 2];
                 }
             }
+            end = std::chrono::high_resolution_clock::now();
+            timeelapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << timeelapsed << std::endl;
+
+            //用着色的像素填充白色像素,这种事情应该只有前几帧需要
+            if (frame < 3) {
+                if (frame == 0) {
+                    //clean outliner because they mess up the floodfill
+                    for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                        auto& [pixels, texture] = pixels_texture;
+                        //cleanOutliner(pixels.get(), texture->width, texture->height);
+                    }
+                }
+
+
+                //for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                //    auto& [pixels, texture] = pixels_texture;
+                //    auto lastSlashPos = texture->path.find_last_of("/\\");
+                //    if (lastSlashPos != std::string::npos) {
+                //        stbi_write_png((texture->path.substr(lastSlashPos + 1)).c_str(), texture->width, texture->height, 4, pixels.get(), texture->width * 4);
+                //    }
+                //}
+
+
+                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
+                    auto& [pixels, texture] = pixels_texture;
+                    floodWhitePixelWithNeighborColor(pixels.get(), texture->width, texture->height, Id2WrittenMask[Id].get());
+                    //floodWhitePixelWithNeighborColorCPU(pixels.get(), texture->width, texture->height, Id2WrittenMask[Id].get());
+                }
+            }
+
             for (auto& [Id, WrittenMask] : Id2WrittenMask) {
                 auto& [pixels, texture] = slotIndex2Pixels[Id];
 				auto atlasPath = (texture->path);
@@ -293,17 +327,6 @@ THIS_PIXEL_AT_EDGE:
 					atlasPath.replace(start_pos, 4, std::string(".writtenMask"));
 				}
 				save_to_file(WrittenMask.get(), texture->width * texture->height, atlasPath.c_str());
-            }
-            end = std::chrono::high_resolution_clock::now();
-            timeelapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            std::cout << timeelapsed << std::endl;
-
-            //flood
-            if (frame < 3) {
-                for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
-                    auto& [pixels, texture] = pixels_texture;
-                    floodWhitePixelWithNeighborColorCPU(pixels.get(), texture->width, texture->height);
-                }
             }
 
             for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
@@ -350,8 +373,8 @@ THIS_PIXEL_AT_EDGE:
                 Renderer::shader->setBool("u_OnlyUndrawn", true);
                 drawable.draw();
                 auto& uvPixels = Renderer::ReadPixelsR32UI();
-                std::string uvMappingPath = uvMapPath + std::string("/") + animationName + "_" + time + ".bin";
-                save_to_file(uvPixels.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
+                //std::string uvMappingPath = uvMapPath + std::string("/") + animationName + "_" + time + ".bin";
+                //save_to_file(uvPixels.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
 
 
                 auto nextMask = decodeUVToMask(uvPixels.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
@@ -372,7 +395,7 @@ THIS_PIXEL_AT_EDGE:
     // ========================  preprocess  寻找keypose  ==============================
     // 0. 修改texture. 透明为0，非透明255. 然后更新到GPU. (透明与非透明的阈值为 LOW_ALPHA_THRESHOLD)
     for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
-        slotIndex2Pixels[Id] = convertToSingleChannelOnAlpha(std::move(pixels_texture));
+        slotIndex2Pixels[Id] = convertToBinaryAlphaMask(std::move(pixels_texture));
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     for (auto& [_, pixels_texture] : slotIndex2Pixels) {
@@ -488,13 +511,13 @@ THIS_PIXEL_AT_EDGE:
         drawable.animationState->setAnimation(0, animName, true);
         drawable.update(animTime);
 
-        //Renderer::shader->setBool("u_OnlyUndrawn", false);
+        Renderer::shader->setBool("u_OnlyUndrawn", false);
         Renderer::Clear();
         drawable.draw();
 
         nextuvPose = Renderer::ReadPixelsR32UI();
 
-        //save_to_file(nextuvPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
+        save_to_file(nextuvPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, uvMappingPath.c_str());
         //auto nextMask = decodeUVToMask(nextuvPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
         //stbi_write_png((uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + "@mask.png").c_str(),
         //    Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, nextMask.get(), Renderer::SCR_WIDTH);
@@ -502,8 +525,6 @@ THIS_PIXEL_AT_EDGE:
         Renderer::StartDrawCTRL();
         Renderer::Clear();
         std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
-        drawable.animationState->setAnimation(0, animName, true);
-        drawable.update(animTime);
         drawable.draw();
         std::unique_ptr<GLubyte[]> CTRL = Renderer::ReadPixelsR8UI();
         stbi_write_png((uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + "@ctrl.png").c_str(),

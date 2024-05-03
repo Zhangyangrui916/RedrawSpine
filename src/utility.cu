@@ -4,8 +4,7 @@
 #include <memory>
 #include <npp.h>
 
-#define LOW_ALPHA_THRESHOLD 8
-
+#define LOW_ALPHA_THRESHOLD 11
 
 class cudaPerfCounter {
 public:
@@ -44,7 +43,7 @@ __global__ void rgba_to_alpha(GLubyte* input, GLubyte* output, int width, int he
 
 // 不改变传入参数
 // 返回的结构体之所以带上Texture*,是为了指明GLubyte[]的宽高. 如果要更新到GPU请自己更新.
-std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(std::tuple<std::unique_ptr<GLubyte[]>, Texture*>& rgba)
+std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToBinaryAlphaMask(std::tuple<std::unique_ptr<GLubyte[]>, Texture*>& rgba)
 {
 	auto& [input, texture] = rgba;
 	int width = texture->width;
@@ -72,9 +71,21 @@ std::tuple<std::unique_ptr<GLubyte[]>, Texture*> convertToSingleChannelOnAlpha(s
 __global__ void countNotZeroKernel(GLuint* pixels, int size, unsigned int* count) {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 
-	if (x < size) {
+	if ((x + 1) < size) {
 		GLuint pixel = pixels[x];
-		GLuint pixelNext = pixels[x+1];
+		GLuint pixelNext = pixels[x + 1];
+		if (pixel != 0 && pixelNext != 0) {
+			atomicAdd(count, 1);
+		}
+	}
+}
+
+__global__ void countNotZeroKernel(GLubyte* pixels, int size, unsigned int* count) {
+	int x = threadIdx.x + blockIdx.x * blockDim.x;
+
+	if ((x + 1) < size) {
+		GLuint pixel = pixels[x];
+		GLuint pixelNext = pixels[x + 1];
 		if (pixel != 0 && pixelNext != 0) {
 			atomicAdd(count, 1);
 		}
@@ -374,119 +385,225 @@ std::unique_ptr<GLubyte[]> canny(std::unique_ptr<GLubyte[]> input, int width, in
 	return std::move(output);
 }
 
-
-__global__ void floodWhitePixelWithNeighborColorKernel(GLubyte* d_input, int width, int height, int* d_count) {
-
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
-
-	__shared__ unsigned char sharedInput[18][18][4];
-	sharedInput[threadIdx.x][threadIdx.y][0] = d_input[(y * width + x) * 4 + 0];
-	sharedInput[threadIdx.x][threadIdx.y][1] = d_input[(y * width + x) * 4 + 1];
-	sharedInput[threadIdx.x][threadIdx.y][2] = d_input[(y * width + x) * 4 + 2];
-	sharedInput[threadIdx.x][threadIdx.y][3] = d_input[(y * width + x) * 4 + 3];
-	__syncthreads();
-
-	if (sharedInput[threadIdx.x][threadIdx.y][0] != 255 || sharedInput[threadIdx.x][threadIdx.y][1] != 255 || sharedInput[threadIdx.x][threadIdx.y][2] != 255 ||  sharedInput[threadIdx.x][threadIdx.y][3] == 0) {
+__global__ void erodeKernel(unsigned char* input, int width, int height) {
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	
+	if(x >= width || y >= height) {
 		return;
 	}
 
-	if (threadIdx.x > 0) {
-		if (sharedInput[threadIdx.x - 1][threadIdx.y][0] != 255 && sharedInput[threadIdx.x - 1][threadIdx.y][1] != 255 && sharedInput[threadIdx.x - 1][threadIdx.y][2] != 255 && sharedInput[threadIdx.x - 1][threadIdx.y][3] != 0) {
-			d_input[(y * width + x) * 4 + 0] = sharedInput[threadIdx.x - 1][threadIdx.y][0];
-			d_input[(y * width + x) * 4 + 1] = sharedInput[threadIdx.x - 1][threadIdx.y][1];
-			d_input[(y * width + x) * 4 + 2] = sharedInput[threadIdx.x - 1][threadIdx.y][2];
-			atomicAdd(d_count, 1);
-			return;
-		}
+	int index = y * width + x;
+	if (index - 1 >= 0 && input[index - 1] == 0) {
+		input[index] = 0;
+		return;
 	}
-	else {
-		if (x > 0) {
-			if (d_input[((y)*width + x - 1) * 4 + 0] != 255 && d_input[((y)*width + x - 1) * 4 + 1] != 255 && d_input[((y)*width + x - 1) * 4 + 2] != 255 && d_input[((y)*width + x - 1) * 4 + 3] != 0) {
-				d_input[(y * width + x) * 4 + 0] = d_input[((y) * width + x - 1) * 4 + 0];
-				d_input[(y * width + x) * 4 + 1] = d_input[((y) * width + x - 1) * 4 + 1];
-				d_input[(y * width + x) * 4 + 2] = d_input[((y) * width + x - 1) * 4 + 2];
-				atomicAdd(d_count, 1);
-				return;
-			}
-		}
+	if (index + 1 < width * height && input[index + 1] == 0) {
+		input[index] = 0;
+		return;
 	}
-
-
-	if (threadIdx.x < 15) {
-		if (sharedInput[threadIdx.x + 1][threadIdx.y][0] != 255 && sharedInput[threadIdx.x + 1][threadIdx.y][1] != 255 && sharedInput[threadIdx.x + 1][threadIdx.y][2] != 255 && sharedInput[threadIdx.x + 1][threadIdx.y][3] != 0) {
-			d_input[(y * width + x) * 4 + 0] = sharedInput[threadIdx.x + 1][threadIdx.y][0];
-			d_input[(y * width + x) * 4 + 1] = sharedInput[threadIdx.x + 1][threadIdx.y][1];
-			d_input[(y * width + x) * 4 + 2] = sharedInput[threadIdx.x + 1][threadIdx.y][2];
-			atomicAdd(d_count, 1);
-			return;
-		}
+	if (index - width >= 0 && input[index - width] == 0) {
+		input[index] = 0;
+		return;
 	}
-	else {
-		if (x < width - 1) {
-			if (d_input[((y)*width + x + 1) * 4 + 0] != 255 && d_input[((y)*width + x + 1) * 4 + 1] != 255 && d_input[((y)*width + x + 1) * 4 + 2] != 255 && d_input[((y)*width + x + 1) * 4 + 3] != 0) {
-				d_input[(y * width + x) * 4 + 0] = d_input[((y) * width + x + 1) * 4 + 0];
-				d_input[(y * width + x) * 4 + 1] = d_input[((y) * width + x + 1) * 4 + 1];
-				d_input[(y * width + x) * 4 + 2] = d_input[((y) * width + x + 1) * 4 + 2];
-				atomicAdd(d_count, 1);
-				return;
-			}
-		}
-	}
-
-
-	if (threadIdx.y > 0) {
-		if (sharedInput[threadIdx.x][threadIdx.y - 1][0] != 255 && sharedInput[threadIdx.x][threadIdx.y - 1][1] != 255 && sharedInput[threadIdx.x][threadIdx.y - 1][2] != 255 && sharedInput[threadIdx.x][threadIdx.y - 1][3] != 0) {
-			d_input[(y * width + x) * 4 + 0] = sharedInput[threadIdx.x][threadIdx.y - 1][0];
-			d_input[(y * width + x) * 4 + 1] = sharedInput[threadIdx.x][threadIdx.y - 1][1];
-			d_input[(y * width + x) * 4 + 2] = sharedInput[threadIdx.x][threadIdx.y - 1][2];
-			atomicAdd(d_count, 1);
-			return;
-		}
-	}
-	else {
-		if (y > 0) {
-			if (d_input[((y - 1) * width + x) * 4 + 0] != 255 && d_input[((y - 1) * width + x) * 4 + 1] != 255 && d_input[((y - 1) * width + x) * 4 + 2] != 255 && d_input[((y - 1) * width + x) * 4 + 3] != 0) {
-				d_input[(y * width + x) * 4 + 0] = d_input[((y - 1) * width + x) * 4 + 0];
-				d_input[(y * width + x) * 4 + 1] = d_input[((y - 1) * width + x) * 4 + 1];
-				d_input[(y * width + x) * 4 + 2] = d_input[((y - 1) * width + x) * 4 + 2];
-				atomicAdd(d_count, 1);
-				return;
-			}
-		}
-	}
-
-
-	if (threadIdx.y < 15) {
-		if (sharedInput[threadIdx.x][threadIdx.y + 1][0] != 255 && sharedInput[threadIdx.x][threadIdx.y + 1][1] != 255 && sharedInput[threadIdx.x][threadIdx.y + 1][2] != 255 && sharedInput[threadIdx.x][threadIdx.y + 1][3] != 0) {
-			d_input[(y * width + x) * 4 + 0] = sharedInput[threadIdx.x][threadIdx.y + 1][0];
-			d_input[(y * width + x) * 4 + 1] = sharedInput[threadIdx.x][threadIdx.y + 1][1];
-			d_input[(y * width + x) * 4 + 2] = sharedInput[threadIdx.x][threadIdx.y + 1][2];
-			atomicAdd(d_count, 1);
-			return;
-		}
-	}
-	else {
-		if (y < height - 1) {
-			if (d_input[((y + 1) * width + x) * 4 + 0] != 255 && d_input[((y + 1) * width + x) * 4 + 1] != 255 && d_input[((y + 1) * width + x) * 4 + 2] != 255 && d_input[((y + 1) * width + x) * 4 + 3] != 0) {
-				d_input[(y * width + x) * 4 + 0] = d_input[((y + 1) * width + x) * 4 + 0];
-				d_input[(y * width + x) * 4 + 1] = d_input[((y + 1) * width + x) * 4 + 1];
-				d_input[(y * width + x) * 4 + 2] = d_input[((y + 1) * width + x) * 4 + 2];
-				atomicAdd(d_count, 1);
-				return;
-			}
-		}
+	if (index + width < width * height && input[index + width] == 0) {
+		input[index] = 0;
+		return;
 	}
 }
 
-__global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int width, int height, int* d_count) {
+bool ErodeAndCheckRemain(GLubyte* input, int width, int height) {
 
+	GLubyte* d_input;
+	cudaMalloc(&d_input, width * height * sizeof(GLubyte));
+	cudaMemcpy(d_input, input, width * height * sizeof(GLubyte), cudaMemcpyHostToDevice);
+
+	dim3 block(16, 16);
+	dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+
+	erodeKernel <<<grid, block>>> (d_input, width, height);
+	erodeKernel <<<grid, block>>> (d_input, width, height);
+	erodeKernel <<<grid, block>>> (d_input, width, height);
+
+	int block_size = 256;
+	unsigned int count = 0;
+	unsigned int* d_count;
+	cudaMalloc(&d_count, sizeof(unsigned int));
+	cudaMemset(d_count, 0, sizeof(unsigned int));
+	int size = width * height;
+	cudaMalloc((void**)&d_count, sizeof(unsigned int));
+	int grid_size = (size + block_size - 1) / block_size;
+	countNotZeroKernel <<<grid_size, block_size>>> (d_input, size, d_count);
+	cudaDeviceSynchronize();
+	cudaMemcpy(&count, d_count, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize();
+	cudaFree(d_input);
+	cudaFree(d_count);
+	return count == 0;
+}
+
+void floodWhitePixelWithNeighborColorCPU(GLubyte* input, int width, int height, GLubyte* WrittenMask) {
+	bool onlyEdgeLeft = ErodeAndCheckRemain(WrittenMask, width, height);
+	int count = 0;
+START:
+	count = 0;
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int index = y * width + x;
+			if (WrittenMask[index] != WrittenState::NotWritten) {
+				continue;
+			}
+			int neighborcount = 0;
+			int neightborRed = 0;
+			int neightborGreen = 0;
+			int neightborBlue = 0;
+
+			if (x > 0 && WrittenMask[index - 1] == WrittenState::Written) {
+				neightborRed += input[(index - 1) * 4];
+				neightborGreen += input[(index - 1) * 4 + 1];
+				neightborBlue += input[(index - 1) * 4 + 2];
+				neighborcount++;
+			}
+			if (x < width - 1 && WrittenMask[index + 1] == WrittenState::Written) {
+				neightborRed += input[(index + 1) * 4];
+				neightborGreen += input[(index + 1) * 4 + 1];
+				neightborBlue += input[(index + 1) * 4 + 2];
+				neighborcount++;
+			}
+			if (y > 0) {
+				if (WrittenMask[index - width] == WrittenState::Written) {
+					neightborRed += input[(index - width) * 4];
+					neightborGreen += input[(index - width) * 4 + 1];
+					neightborBlue += input[(index - width) * 4 + 2];
+					neighborcount++;
+				}
+				if (x > 0 && WrittenMask[index - width - 1] == WrittenState::Written) {
+					neightborRed += input[(index - width - 1) * 4];
+					neightborGreen += input[(index - width - 1) * 4 + 1];
+					neightborBlue += input[(index - width - 1) * 4 + 2];
+					neighborcount++;
+				}
+				if (x < width - 1 && WrittenMask[index - width + 1] == WrittenState::Written) {
+					neightborRed += input[(index - width + 1) * 4];
+					neightborGreen += input[(index - width + 1) * 4 + 1];
+					neightborBlue += input[(index - width + 1) * 4 + 2];
+					neighborcount++;
+				}
+			}
+			if (y < height - 1) {
+				if (input[(index + width) * 4 + 3] != 0 && WrittenMask[index + width] == WrittenState::Written) {
+					neightborRed += input[(index + width) * 4];
+					neightborGreen += input[(index + width) * 4 + 1];
+					neightborBlue += input[(index + width) * 4 + 2];
+					neighborcount++;
+				}
+				if (x > 0 && WrittenMask[index + width - 1] == WrittenState::Written) {
+					neightborRed += input[(index + width - 1) * 4];
+					neightborGreen += input[(index + width - 1) * 4 + 1];
+					neightborBlue += input[(index + width - 1) * 4 + 2];
+					neighborcount++;
+				}
+				if (x < width - 1 && WrittenMask[index + width + 1] == WrittenState::Written) {
+					neightborRed += input[(index + width + 1) * 4];
+					neightborGreen += input[(index + width + 1) * 4 + 1];
+					neightborBlue += input[(index + width + 1) * 4 + 2];
+					neighborcount++;
+				}
+			}
+			if (neighborcount > 1) {
+				input[index * 4]	 = neightborRed / neighborcount;
+				input[index * 4 + 1] = neightborGreen / neighborcount;
+				input[index * 4 + 2] = neightborBlue / neighborcount;
+				count++;
+				if (onlyEdgeLeft) {
+					WrittenMask[index] = WrittenState::Written;
+				}
+				else {
+					WrittenMask[index] = WrittenState::Flooded;
+				}
+			}
+		}
+	}
+	std::string filename = "image" + std::to_string(width) + std::to_string(height) + std::to_string(count) + ".png";
+	stbi_write_png(filename.c_str(), width, height, 4, input, width * 4);
+	if (count > 0) {
+		goto START;
+	}
+
+}
+
+__global__ void cleanOutlinerKernel(GLubyte* d_input, int width, int height) {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
-	int index = y * width + x;
-	if (d_input[index * 4] != 255 || d_input[index * 4 + 1] != 255 || d_input[index * 4 + 2] != 255 || d_input[index * 4 + 3] == 0) {
+
+	if (x > 1 && y > 1 && x < width - 2 && y < height - 2) {
+		if (d_input[(y * width + x) * 4 + 3] == 0 || (d_input[(y * width + x) * 4] == 255 && d_input[(y * width + x) * 4 + 1] == 255 && d_input[(y * width + x) * 4 + 2] == 255)) {
+			return;
+		}
+		int countNeighborNotWhite = 0;
+		for (int i = x - 2; i <= x + 2; i++) {
+			for (int j = y - 2; j <= y + 2; j++) {
+				if (i == x && j == y) {
+					continue;
+				}
+				int neighborIndex = j * width + i;
+				if (d_input[neighborIndex * 4] != 255 || d_input[neighborIndex * 4 + 1] != 255 || d_input[neighborIndex * 4 + 2] != 255) {
+					countNeighborNotWhite++;
+				}
+			}
+		}
+
+		if (countNeighborNotWhite < 8) {
+			d_input[(y * width + x) * 4] = 255;
+			d_input[(y * width + x) * 4 + 1] = 255;
+			d_input[(y * width + x) * 4 + 2] = 255;
+		}
+
 		return;
 	}
+}
+
+void cleanOutliner(GLubyte* input, int width, int height)
+{
+	GLubyte* d_input;
+	cudaMalloc(&d_input, width * height * 4 * sizeof(GLubyte));
+	cudaMemcpy(d_input, input, width * height * 4 * sizeof(GLubyte), cudaMemcpyHostToDevice);
+	dim3 block(16, 16);
+	dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+	cleanOutlinerKernel <<<grid, block>>> (d_input, width, height);
+	cudaMemcpy(input, d_input, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+	cudaFree(d_input);
+
+}
+
+
+__global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int width, int height, int* d_count, int mode, GLubyte* d_writtenMask, bool onlyEdgeLeft) {
+
+	int x = (threadIdx.x + blockIdx.x * blockDim.x)*2;
+	int y = (threadIdx.y + blockIdx.y * blockDim.y)*2;
+	if (mode == 1) {
+		x += 1;
+	}
+	else if (mode == 2) {
+		y += 1;
+	}
+	else if (mode == 3) {
+		x += 1;
+		y += 1;
+	}
+
+	if(x >= width || y >= height) {
+		return;
+	}
+
+
+	int index = y * width + x;
+	if (d_writtenMask[index] != WrittenState::NotWritten) {
+		return;
+	}
+	//if (d_input[index * 4] != 255 || d_input[index * 4 + 1] != 255 || d_input[index * 4 + 2] != 255 || d_input[index * 4 + 3] == 0) {
+	//	return;
+	//}
 
 	int neighborcount = 0;
 	int neightborRed = 0;
@@ -505,7 +622,7 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 		neightborBlue += d_input[(index + 1) * 4 + 2];
 		neighborcount++;
 	}
-	if(y > 0) {
+	if (y > 0) {
 		if (d_input[(index - width) * 4 + 3] != 0 && (d_input[(index - width) * 4] != 255 || d_input[(index - width) * 4 + 1] != 255 || d_input[(index - width) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index - width) * 4];
 			neightborGreen += d_input[(index - width) * 4 + 1];
@@ -525,8 +642,8 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 			neighborcount++;
 		}
 	}
-	if (y < height - 1){
-		if(d_input[(index + width) * 4 + 3] != 0 && (d_input[(index + width) * 4] != 255 || d_input[(index + width) * 4 + 1] != 255 || d_input[(index + width) * 4 + 2] != 255)){
+	if (y < height - 1) {
+		if (d_input[(index + width) * 4 + 3] != 0 && (d_input[(index + width) * 4] != 255 || d_input[(index + width) * 4 + 1] != 255 || d_input[(index + width) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index + width) * 4];
 			neightborGreen += d_input[(index + width) * 4 + 1];
 			neightborBlue += d_input[(index + width) * 4 + 2];
@@ -545,128 +662,70 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 			neighborcount++;
 		}
 	}
+
 	if (neighborcount > 1) {
 		d_input[index * 4 + 2] = neightborBlue / neighborcount;
 		d_input[index * 4] = neightborRed / neighborcount;
 		d_input[index * 4 + 1] = neightborGreen / neighborcount;
-		printf("%d %d  r %d\t g: %d b %d\t count %d \n",x, y, neightborRed, neightborGreen, neightborBlue, neighborcount);
-		atomicAdd(d_count, 1);
-	}
-}
-
-void floodWhitePixelWithNeighborColorCPU(GLubyte* input, int width, int height) {
-	int count = 0;
-START:
-	count = 0;
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int index = y * width + x;
-			if (input[index * 4] != 255 || input[index * 4 + 1] != 255 || input[index * 4 + 2] != 255 || input[index * 4 + 3] == 0) {
-				continue;
-			}
-			int neighborcount = 0;
-			int neightborRed = 0;
-			int neightborGreen = 0;
-			int neightborBlue = 0;
-
-			if (x > 0 && input[(index - 1) * 4 + 3] != 0 && (input[(index - 1) * 4] != 255 || input[(index - 1) * 4 + 1] != 255 || input[(index - 1) * 4 + 2] != 255)) {
-				neightborRed += input[(index - 1) * 4];
-				neightborGreen += input[(index - 1) * 4 + 1];
-				neightborBlue += input[(index - 1) * 4 + 2];
-				neighborcount++;
-			}
-			if (x < width - 1 && input[(index + 1) * 4 + 3] != 0 && (input[(index + 1) * 4] != 255 || input[(index + 1) * 4 + 1] != 255 || input[(index + 1) * 4 + 2] != 255)) {
-				neightborRed += input[(index + 1) * 4];
-				neightborGreen += input[(index + 1) * 4 + 1];
-				neightborBlue += input[(index + 1) * 4 + 2];
-				neighborcount++;
-			}
-			if (y > 0) {
-				if (input[(index - width) * 4 + 3] != 0 && (input[(index - width) * 4] != 255 || input[(index - width) * 4 + 1] != 255 || input[(index - width) * 4 + 2] != 255)) {
-					neightborRed += input[(index - width) * 4];
-					neightborGreen += input[(index - width) * 4 + 1];
-					neightborBlue += input[(index - width) * 4 + 2];
-					neighborcount++;
-				}
-				if (x > 0 && input[(index - width - 1) * 4 + 3] != 0 && (input[(index - width - 1) * 4] != 255 || input[(index - width - 1) * 4 + 1] != 255 || input[(index - width - 1) * 4 + 2] != 255)) {
-					neightborRed += input[(index - width - 1) * 4];
-					neightborGreen += input[(index - width - 1) * 4 + 1];
-					neightborBlue += input[(index - width - 1) * 4 + 2];
-					neighborcount++;
-				}
-				if (x < width - 1 && input[(index - width + 1) * 4 + 3] != 0 && (input[(index - width + 1) * 4] != 255 || input[(index - width + 1) * 4 + 1] != 255 || input[(index - width + 1) * 4 + 2] != 255)) {
-					neightborRed += input[(index - width + 1) * 4];
-					neightborGreen += input[(index - width + 1) * 4 + 1];
-					neightborBlue += input[(index - width + 1) * 4 + 2];
-					neighborcount++;
-				}
-			}
-			if (y < height - 1) {
-				if (input[(index + width) * 4 + 3] != 0 && (input[(index + width) * 4] != 255 || input[(index + width) * 4 + 1] != 255 || input[(index + width) * 4 + 2] != 255)) {
-					neightborRed += input[(index + width) * 4];
-					neightborGreen += input[(index + width) * 4 + 1];
-					neightborBlue += input[(index + width) * 4 + 2];
-					neighborcount++;
-				}
-				if (x > 0 && input[(index + width - 1) * 4 + 3] != 0 && (input[(index + width - 1) * 4] != 255 || input[(index + width - 1) * 4 + 1] != 255 || input[(index + width - 1) * 4 + 2] != 255)) {
-					neightborRed += input[(index + width - 1) * 4];
-					neightborGreen += input[(index + width - 1) * 4 + 1];
-					neightborBlue += input[(index + width - 1) * 4 + 2];
-					neighborcount++;
-				}
-				if (x < width - 1 && input[(index + width + 1) * 4 + 3] != 0 && (input[(index + width + 1) * 4] != 255 || input[(index + width + 1) * 4 + 1] != 255 || input[(index + width + 1) * 4 + 2] != 255)) {
-					neightborRed += input[(index + width + 1) * 4];
-					neightborGreen += input[(index + width + 1) * 4 + 1];
-					neightborBlue += input[(index + width + 1) * 4 + 2];
-					neighborcount++;
-				}
-			}
-			if (neighborcount > 1) {
-				input[index * 4 + 2] = neightborBlue / neighborcount;
-				input[index * 4] = neightborRed / neighborcount;
-				input[index * 4 + 1] = neightborGreen / neighborcount;
-				count++;
-			}
+		(*d_count)++;
+		if (onlyEdgeLeft) {
+			d_writtenMask[index] = WrittenState::Written;
+		}else{
+			d_writtenMask[index] = WrittenState::Flooded;
 		}
 	}
-	if (count > 0) {
-		goto START;
-	}
-
 }
 
 
-void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height) {
+
+void floodWhitePixelWithNeighborColor(GLubyte* input, int width, int height, GLubyte* WrittenMask) {
+	bool onlyEdgeLeft = ErodeAndCheckRemain(WrittenMask, width, height);
 
 	GLubyte* d_input;
-	cudaMalloc(&d_input, width * height * 4 * sizeof(GLubyte));
+	cudaError_t error = cudaMalloc(&d_input, width * height * 4 * sizeof(GLubyte));
+	if (error != cudaSuccess)
+	{
+		printf("cudaMalloc returned error %s (code %d), line(%d)\n", cudaGetErrorString(error), error, __LINE__);
+		return;
+	}
 	cudaMemcpy(d_input, input, width * height * 4 * sizeof(GLubyte), cudaMemcpyHostToDevice);
+
+	GLubyte* d_WrittenMask;
+	cudaMalloc(&d_WrittenMask, width * height * sizeof(GLubyte));
+	cudaMemcpy(d_WrittenMask, WrittenMask, width * height * sizeof(GLubyte), cudaMemcpyHostToDevice);
 
 	int* d_count;
 	cudaMalloc(&d_count, sizeof(unsigned int));
 	cudaMemset(d_count, 0, sizeof(unsigned int));
 
 	dim3 block(16, 16);
-	dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
+	dim3 grid((int((width + 1) / 2) + block.x - 1) / block.x, (((height + 1) / 2) + block.y - 1) / block.y);
 
 RECURSIVE_FLOOD:
-	floodWhitePixelWithNeighborColorKernel1 <<<grid, block>>>(d_input, width, height, d_count);
+	floodWhitePixelWithNeighborColorKernel1<<<grid, block>>>(d_input, width, height, d_count, 0, d_WrittenMask, onlyEdgeLeft);
+	cudaDeviceSynchronize();																   				    
+	floodWhitePixelWithNeighborColorKernel1<<<grid, block>>>(d_input, width, height, d_count, 1, d_WrittenMask, onlyEdgeLeft);
+	cudaDeviceSynchronize();																   				    
+	floodWhitePixelWithNeighborColorKernel1<<<grid, block>>>(d_input, width, height, d_count, 2, d_WrittenMask, onlyEdgeLeft);
+	cudaDeviceSynchronize();																   				    
+	floodWhitePixelWithNeighborColorKernel1<<<grid, block>>>(d_input, width, height, d_count, 3, d_WrittenMask, onlyEdgeLeft);
 	
-	cudaDeviceSynchronize();
 	int count = -1;
 	cudaMemcpy(&count, d_count, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
 	cudaDeviceSynchronize();
-	if (count != 0) {
-		cudaMemcpy(input, d_input, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
-		cudaDeviceSynchronize();
-		stbi_write_png(("image_out" + std::to_string(count) + ".png").c_str(), width, height, 4, input, width * 4);
+	if (count > 0) {
+		//cudaMemcpy(input, d_input, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+		//cudaDeviceSynchronize();
+		//stbi_write_png(("image_out" + std::to_string(count) + ".png").c_str(), width, height, 4, input, width * 4);
 		cudaMemset(d_count, 0, sizeof(unsigned int));
 		goto RECURSIVE_FLOOD;
 	}
 
 	cudaMemcpy(input, d_input, width * height * 4 * sizeof(GLubyte), cudaMemcpyDeviceToHost);
+	cudaMemcpy(WrittenMask, d_WrittenMask, width * height * sizeof(GLubyte), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
+	cudaFree(d_WrittenMask);
 	cudaFree(d_input);
 	cudaFree(d_count);
 }
