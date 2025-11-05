@@ -139,7 +139,12 @@ int main(int argc, char* argv[]) {
     for (int i = 6; i < argc; i++) {
         if (0 == strcmp(argv[i], "-frame")){  //写atlas并渲染下一帧
             std::string renderResultPath = argv[++i];
-            auto renderResult = stbi_load(renderResultPath.c_str(), &Renderer::SCR_WIDTH, &Renderer::SCR_HEIGHT, nullptr, 0);
+            auto renderResult = stbi_load(renderResultPath.c_str(), &Renderer::SCR_WIDTH, &Renderer::SCR_HEIGHT, nullptr, STBI_rgb);
+
+            //std::string softInpaintMaskPath = renderResultPath;
+            //softInpaintMaskPath.replace(softInpaintMaskPath.find(".png"), 4, std::string("@adaptiveMask.png"));
+            //auto softInpaintMask = stbi_load(softInpaintMaskPath.c_str(), &Renderer::SCR_WIDTH, &Renderer::SCR_HEIGHT, nullptr, STBI_grey);
+
             auto&[frame, directory] = extractIntAndDirectoryFromFileName(renderResultPath);
             auto& [currentPoseUVMapPath, nextposePath] = [&]() -> std::pair<std::string, std::string> {
                 std::ifstream file(uvMapPath + std::string("/sequence.txt"));
@@ -165,6 +170,12 @@ int main(int argc, char* argv[]) {
                     auto& [pixels, texture] = pixels_texture;
                     auto writtenMaskFileName = texture->path;
                     Id2WrittenMask[Id] = std::unique_ptr<GLubyte[]>((GLubyte*)load_from_file((writtenMaskFileName.replace(writtenMaskFileName.find(".png"), 4, std::string(".writtenMask"))).c_str()));
+                    size_t size = texture->width * texture->height;
+                    for (size_t i = 0; i < size; i++) {
+						if (Id2WrittenMask[Id][i] == WrittenState::Flooded) {
+                            Id2WrittenMask[Id][i] = WrittenState::NotWritten;
+						}
+					}
                 }
             }
 
@@ -194,7 +205,11 @@ int main(int argc, char* argv[]) {
                         //检查是否已经写过
                         unsigned int myId = Id_V_U >> 24;
                         unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
-                        if (Id2WrittenMask[myId][AttachmentPixelIndex] == WrittenState::Written) {
+                        //if (Id2WrittenMask[myId][AttachmentPixelIndex] == WrittenState::Written) {
+                        //    currentPoseUVMap[index] = 0;
+                        //}
+                        
+                        if (Id2WrittenMask[myId][AttachmentPixelIndex] == WrittenState::Written /*&& softInpaintMask[index] < 128*/ ) {
                             currentPoseUVMap[index] = 0;
                         }
 
@@ -212,6 +227,12 @@ int main(int argc, char* argv[]) {
 THIS_PIXEL_AT_EDGE:
 
                         //calculate the gradient of the pixel
+                        auto value = renderResult[index * 3 + 2];
+                        if (value < 32) {
+                            out[index] = 255;
+                            continue;
+                        }
+
                         int gradValX = renderResult[(index - 1) * 3 + 2] - renderResult[(index + 1) * 3 + 2];
                         int gradValY = renderResult[(index - Renderer::SCR_WIDTH) * 3 + 2] - renderResult[(index + Renderer::SCR_WIDTH) * 3 + 2];
                         int gradVal = gradValX * gradValX + gradValY * gradValY;
@@ -266,8 +287,6 @@ THIS_PIXEL_AT_EDGE:
 				}
             }
             hsv2rgb(renderResult, Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT);
-            //stbi_write_png(std::string("1.png").c_str(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 3, renderResult, Renderer::SCR_WIDTH * 3);
-
 
             constexpr int SAME_ATTA_THRESHOLD = 40;
             start = std::chrono::high_resolution_clock::now();
@@ -279,9 +298,15 @@ THIS_PIXEL_AT_EDGE:
 
                     unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                     unsigned int Id = (Id_V_U >> 24) & 0xFF;
-                    if(Id2WrittenMask[Id][AttachmentPixelIndex] == WrittenState::Written) continue;
-                    // soft inpaint hook in
-                    Id2WrittenMask[Id][AttachmentPixelIndex] = WrittenState::Written;
+
+                    //if (softInpaintMask[index] < 128) {
+                        if (Id2WrittenMask[Id][AttachmentPixelIndex] == WrittenState::Written) continue;
+                        Id2WrittenMask[Id][AttachmentPixelIndex] = WrittenState::Written;
+                    //}
+                    //else {
+                    //    //overwrite it anyway
+                    //}
+
                     auto& [pixels, _] = slotIndex2Pixels[Id];
                     pixels[AttachmentPixelIndex * 4 + 0] = renderResult[index * 3 + 0];
                     pixels[AttachmentPixelIndex * 4 + 1] = renderResult[index * 3 + 1];
@@ -298,10 +323,9 @@ THIS_PIXEL_AT_EDGE:
                     //clean outliner because they mess up the floodfill
                     for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
                         auto& [pixels, texture] = pixels_texture;
-                        //cleanOutliner(pixels.get(), texture->width, texture->height);
+                        cleanOutliner(pixels.get(), texture->width, texture->height);
                     }
                 }
-
 
                 //for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
                 //    auto& [pixels, texture] = pixels_texture;

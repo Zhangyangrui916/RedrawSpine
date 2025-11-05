@@ -606,6 +606,7 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 	//}
 
 	int neighborcount = 0;
+	int WrittenNeighborCount = 0;
 	int neightborRed = 0;
 	int neightborGreen = 0;
 	int neightborBlue = 0;
@@ -615,12 +616,18 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 		neightborGreen += d_input[(index - 1) * 4 + 1];
 		neightborBlue += d_input[(index - 1) * 4 + 2];
 		neighborcount++;
+		if (d_writtenMask[index - 1] == WrittenState::Written) {
+			WrittenNeighborCount++;
+		}
 	}
 	if (x < width - 1 && d_input[(index + 1) * 4 + 3] != 0 && (d_input[(index + 1) * 4] != 255 || d_input[(index + 1) * 4 + 1] != 255 || d_input[(index + 1) * 4 + 2] != 255)) {
 		neightborRed += d_input[(index + 1) * 4];
 		neightborGreen += d_input[(index + 1) * 4 + 1];
 		neightborBlue += d_input[(index + 1) * 4 + 2];
 		neighborcount++;
+		if (d_writtenMask[index + 1] == WrittenState::Written) {
+			WrittenNeighborCount++;
+		}
 	}
 	if (y > 0) {
 		if (d_input[(index - width) * 4 + 3] != 0 && (d_input[(index - width) * 4] != 255 || d_input[(index - width) * 4 + 1] != 255 || d_input[(index - width) * 4 + 2] != 255)) {
@@ -628,18 +635,27 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 			neightborGreen += d_input[(index - width) * 4 + 1];
 			neightborBlue += d_input[(index - width) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index - width] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 		if (x > 0 && d_input[(index - width - 1) * 4 + 3] != 0 && (d_input[(index - width - 1) * 4] != 255 || d_input[(index - width - 1) * 4 + 1] != 255 || d_input[(index - width - 1) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index - width - 1) * 4];
 			neightborGreen += d_input[(index - width - 1) * 4 + 1];
 			neightborBlue += d_input[(index - width - 1) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index - width - 1] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 		if (x < width - 1 && d_input[(index - width + 1) * 4 + 3] != 0 && (d_input[(index - width + 1) * 4] != 255 || d_input[(index - width + 1) * 4 + 1] != 255 || d_input[(index - width + 1) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index - width + 1) * 4];
 			neightborGreen += d_input[(index - width + 1) * 4 + 1];
 			neightborBlue += d_input[(index - width + 1) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index - width + 1] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 	}
 	if (y < height - 1) {
@@ -648,18 +664,27 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 			neightborGreen += d_input[(index + width) * 4 + 1];
 			neightborBlue += d_input[(index + width) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index + width] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 		if (x > 0 && d_input[(index + width - 1) * 4 + 3] != 0 && (d_input[(index + width - 1) * 4] != 255 || d_input[(index + width - 1) * 4 + 1] != 255 || d_input[(index + width - 1) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index + width - 1) * 4];
 			neightborGreen += d_input[(index + width - 1) * 4 + 1];
 			neightborBlue += d_input[(index + width - 1) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index + width - 1] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 		if (x < width - 1 && d_input[(index + width + 1) * 4 + 3] != 0 && (d_input[(index + width + 1) * 4] != 255 || d_input[(index + width + 1) * 4 + 1] != 255 || d_input[(index + width + 1) * 4 + 2] != 255)) {
 			neightborRed += d_input[(index + width + 1) * 4];
 			neightborGreen += d_input[(index + width + 1) * 4 + 1];
 			neightborBlue += d_input[(index + width + 1) * 4 + 2];
 			neighborcount++;
+			if (d_writtenMask[index + width + 1] == WrittenState::Written) {
+				WrittenNeighborCount++;
+			}
 		}
 	}
 
@@ -671,7 +696,12 @@ __global__ void floodWhitePixelWithNeighborColorKernel1(GLubyte* d_input, int wi
 		if (onlyEdgeLeft) {
 			d_writtenMask[index] = WrittenState::Written;
 		}else{
-			d_writtenMask[index] = WrittenState::Flooded;
+			if(WrittenNeighborCount > 4){
+				d_writtenMask[index] = WrittenState::Written;
+			}
+			else {
+				d_writtenMask[index] = WrittenState::Flooded;
+			}
 		}
 	}
 }
