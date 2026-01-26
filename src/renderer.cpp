@@ -1,4 +1,5 @@
-#include <renderer.h>
+﻿#include <renderer.h>
+#include <embedded_shaders.h>
 
 namespace Renderer {
 
@@ -34,19 +35,19 @@ namespace Renderer {
 		std::getline(iss, temp, ',');
 		SCR_HEIGHT = std::stoi(temp);
 
-		char* frag;
+		const char* frag;
 		if (strcmp(imgFormat, "rgb") == 0) {
 			mode = 0;
-			frag = "C:/code/mask-analyzer/src/rgb.glsl";
+			frag = EmbeddedShaders::RGB_FS;
 			glEnable(GL_BLEND);
 			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA); //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 		else {
 			mode = 1;
-			frag = "C:/code/mask-analyzer/src/uv_redraw.glsl";
+			frag = EmbeddedShaders::UV_REDRAW_FS;
 		}
 
-		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", frag);
+		UpdateShader(EmbeddedShaders::VS, frag);
 
 		//GLuint framebuffer;
 		glGenFramebuffers(1, &framebuffer);
@@ -86,7 +87,7 @@ namespace Renderer {
 	}
 
 	void UpdateShader(const char* vs, const char* fs) {
-		Renderer::shader = new Shader(vs, fs);
+		Renderer::shader = new Shader(Shader::SourceTag{}, vs, fs);
 		Renderer::shader->use();
 		Renderer::shader->setFloat("width", SCR_WIDTH);
 		Renderer::shader->setFloat("height", SCR_HEIGHT);
@@ -112,12 +113,12 @@ namespace Renderer {
 		else {
 			glBindFramebuffer(GL_FRAMEBUFFER, CTRLframebuffer);
 		}
-		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/ctrl.glsl");
+		UpdateShader(EmbeddedShaders::VS, EmbeddedShaders::CTRL_FS);
 	}
 
 	void EndDrawCTRL() {
 		glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
+		UpdateShader(EmbeddedShaders::VS, EmbeddedShaders::UV_REDRAW_FS);
 	}
 
 	static GLuint UVframebuffer = 0;
@@ -138,7 +139,7 @@ namespace Renderer {
 		else {
 			glBindFramebuffer(GL_FRAMEBUFFER, UVframebuffer);
 		}
-		UpdateShader("C:/code/mask-analyzer/src/vs.glsl", "C:/code/mask-analyzer/src/uv_redraw.glsl");
+		UpdateShader(EmbeddedShaders::VS, EmbeddedShaders::UV_REDRAW_FS);
 	}
 
 

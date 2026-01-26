@@ -12,6 +12,7 @@
 class Shader
 {
 public:
+    struct SourceTag {};
     unsigned int ID;
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
@@ -45,8 +46,18 @@ public:
         {
             std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
         }
-        const char* vShaderCode = vertexCode.c_str();
-        const char* fShaderCode = fragmentCode.c_str();
+        buildFromSource(vertexCode.c_str(), fragmentCode.c_str());
+    }
+    // constructor from in-memory sources
+    // ------------------------------------------------------------------------
+    Shader(SourceTag, const char* vertexSource, const char* fragmentSource)
+    {
+        buildFromSource(vertexSource, fragmentSource);
+    }
+
+private:
+    void buildFromSource(const char* vShaderCode, const char* fShaderCode)
+    {
         // 2. compile shaders
         unsigned int vertex, fragment;
         // vertex shader
@@ -70,6 +81,8 @@ public:
         glDeleteShader(fragment);
 
     }
+
+public:
     // activate the shader
     // ------------------------------------------------------------------------
     void use() const
@@ -93,7 +106,6 @@ public:
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-private:
     // utility function for checking shader compilation/linking errors.
     // ------------------------------------------------------------------------
     void checkCompileErrors(GLuint shader, std::string type)

@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+﻿#include <glad/glad.h>
 #include <spine/spine.h>
 #include "stb_image_write.h"
 #include <shader.h>

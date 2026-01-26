@@ -1,5 +1,6 @@
-#include <SkeletonDrawable.h>
+﻿#include <SkeletonDrawable.h>
 #include <renderer.h>
+#include <embedded_shaders.h>
 #include <texture.h>
 #include "utility.cuh"
 #include "stb_image_write.h"
@@ -16,7 +17,7 @@ namespace cleanAttachment {
 		glDisable(GL_DEPTH_TEST);
 		glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-		shader = new Shader("C:/code/mask-analyzer/src/cleanAttachment.vs.glsl", "C:/code/mask-analyzer/src/cleanAttachment.fs.glsl");
+		shader = new Shader(Shader::SourceTag{}, EmbeddedShaders::CLEAN_ATTACHMENT_VS, EmbeddedShaders::CLEAN_ATTACHMENT_FS);
 		shader->use();
 
 		GLuint framebuffer;

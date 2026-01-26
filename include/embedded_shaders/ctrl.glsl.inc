@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out uvec4 FragColor;
 
 in vec4 v_color;
@@ -13,9 +13,9 @@ void main()
 {
     float red = texture(u_texture, v_texCoords).r;
     
-    // ¼ÙÉèµ×²ãÊÇÁíÒ»¸öalpha = 255µÄAttachment,ÄÇÃ´ÎÒÃÇÓ¦¸ÃÓÃalpha=128×÷ÎªÉÏ²ãAttachmentÓëÏÂ²ãAttachmentµÄ±ß½ç
-    // ¼ÙÉèµ×²ãÊÇ±³¾°,ÄÇÃ´ÎÒÃÇÓ¦¸ÃÓÃalpha>0×÷ÎªÉÏ²ãAttachmentÓë±³¾°µÄ±ß½ç (ÄÇÃ´ÉÏ²ã»á±È½ÏÅÖ)
-    // ÕÛÖÐÔÚÁ½ÕßÖ®¼äÑ¡Ò»¸öãÐÖµ
+    // å‡è®¾åº•å±‚æ˜¯å¦ä¸€ä¸ªalpha = 255çš„Attachment,é‚£ä¹ˆæˆ‘ä»¬åº”è¯¥ç”¨alpha=128ä½œä¸ºä¸Šå±‚Attachmentä¸Žä¸‹å±‚Attachmentçš„è¾¹ç•Œ
+    // å‡è®¾åº•å±‚æ˜¯èƒŒæ™¯,é‚£ä¹ˆæˆ‘ä»¬åº”è¯¥ç”¨alpha>0ä½œä¸ºä¸Šå±‚Attachmentä¸ŽèƒŒæ™¯çš„è¾¹ç•Œ (é‚£ä¹ˆä¸Šå±‚ä¼šæ¯”è¾ƒèƒ–)
+    // æŠ˜ä¸­åœ¨ä¸¤è€…ä¹‹é—´é€‰ä¸€ä¸ªé˜ˆå€¼
     if (red < 0.2)
     {
         discard;
@@ -27,3 +27,4 @@ void main()
 
     FragColor = uvec4(u_slotIndex * 3 % 256, 0, 0, 1);
 }
+)"

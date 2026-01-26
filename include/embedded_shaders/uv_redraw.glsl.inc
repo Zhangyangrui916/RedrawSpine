@@ -1,4 +1,4 @@
-#version 330 core
+R"(#version 330 core
 out uvec4 FragColor;
 
 in vec4 v_color;
@@ -13,12 +13,12 @@ uniform bool u_OnlyUndrawn;
 void main()
 {
     float red = texture(u_texture, v_texCoords).r;
-    // ãĞÖµÉèµÄ±Èctrl.glslÖĞµÄÒªµÍ,Ä¿µÄÊÇÄş¿ÉÈÃ±ßÔµ·´Ğ´µ½ÉÏ²ãµÄAttachmentÖĞµÄÍ¸Ã÷ÏñËØ,Ò²²»Òª·´Ğ´µ½ÏÂ²ãµÄAttachmentÖĞµÄ²»Í¸Ã÷ÏñËØ(Ò»°ã¶øÑÔ)
+    // é˜ˆå€¼è®¾çš„æ¯”ctrl.glslä¸­çš„è¦ä½,ç›®çš„æ˜¯å®å¯è®©è¾¹ç¼˜åå†™åˆ°ä¸Šå±‚çš„Attachmentä¸­çš„é€æ˜åƒç´ ,ä¹Ÿä¸è¦åå†™åˆ°ä¸‹å±‚çš„Attachmentä¸­çš„ä¸é€æ˜åƒç´ (ä¸€èˆ¬è€Œè¨€)
     if (red < 0.05)
     {
 		discard;
 	}
-    // ²»Îª1Ê±±íÃ÷±»»æÖÆ¹ı
+    // ä¸ä¸º1æ—¶è¡¨æ˜è¢«ç»˜åˆ¶è¿‡
     if ((u_OnlyUndrawn && red < 0.55) || u_slotIndex == 65535) {
         FragColor = uvec4(0, 0, 0, 1);
 		return;
@@ -42,3 +42,4 @@ void main()
     uint Slot_V_U = (uint(u_slotIndex) << 24) | index;
     FragColor = uvec4(Slot_V_U, 0, 0, 1);
 }
+)"
