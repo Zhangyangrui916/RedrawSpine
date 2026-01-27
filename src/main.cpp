@@ -11,6 +11,7 @@
 #include <fstream>
 #include <sstream>
 #include <chrono>
+#include <algorithm>
 #include "utility.cuh"
 #include <stb_image.h>
 
@@ -83,6 +84,16 @@ static std::pair<int, std::string> extractIntAndDirectoryFromFileName(const std:
 using namespace spine;
 
 int main(int argc, char* argv[]) {
+    // argv:
+    // 1: skeleton.json
+    // 2: atlas (fake.atlas is ok)
+    // 3: "getAABB" | "cleanAttachment" | viewport string "x,y,w,h"
+    // 4: output mode "uv" | "rgb" (when viewport is used)
+    // 5: uvMapPath (output dir, used by analyzer pipeline)
+    // flags:
+    //   -attachments <list>
+    //     format: draw_list,@,skip_list,@,group1@group1@...,group2@...
+    //   -frame <png> : apply a frame result and render next pose
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -127,6 +138,7 @@ int main(int argc, char* argv[]) {
     char* uvMapPath = argv[5];
 
 
+    // attachment 过滤与分组由 analyzer 传入
     for (int i = 6; i < argc; i++) {
         std::string arg = argv[i];
         if(0 == strcmp(argv[i], "-attachments")){
@@ -137,7 +149,7 @@ int main(int argc, char* argv[]) {
     auto slotIndex2Pixels = drawable.GetRedrawTexImage(GL_RGBA);
 
     for (int i = 6; i < argc; i++) {
-        if (0 == strcmp(argv[i], "-frame")){  //写atlas并渲染下一帧
+        if (0 == strcmp(argv[i], "-frame")){  // 写 atlas 并渲染下一帧
             std::string renderResultPath = argv[++i];
             auto renderResult = stbi_load(renderResultPath.c_str(), &Renderer::SCR_WIDTH, &Renderer::SCR_HEIGHT, nullptr, STBI_rgb);
 
@@ -185,8 +197,8 @@ int main(int argc, char* argv[]) {
             auto timeelapsed =  std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             std::cout << timeelapsed <<std::endl;
 
-            //剔除rgb中边缘像素.(假如uvmap附近有其他部件\rgb附近梯度较大)
-            //剔除writtenMask写过的像素
+            // 剔除边缘像素（UV 邻域存在其他部件时，RGB 梯度往往异常）
+            // 同时剔除 writtenMask 已经写过的像素，避免重复覆盖
             {
                 auto out = std::make_unique<GLubyte[]>(Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT);
                 std::fill_n(out.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT, 0);
@@ -198,11 +210,11 @@ int main(int argc, char* argv[]) {
                         unsigned char green = renderResult[index * 3 + 1];
                         unsigned char blue = renderResult[index * 3 + 2];
 
-                        //查看周围是否有不同slot的像素
+                        // 查看周围是否有不同 slot 的像素（用于边缘判断）
                         unsigned int Id_V_U = currentPoseUVMap[index];
                         if (Id_V_U == 0) continue;
 
-                        //检查是否已经写过
+                        // 检查是否已经写过
                         unsigned int myId = Id_V_U >> 24;
                         unsigned int AttachmentPixelIndex = Id_V_U & 0xFFFFFF;
                         //if (Id2WrittenMask[myId][AttachmentPixelIndex] == WrittenState::Written) {
@@ -226,7 +238,7 @@ int main(int argc, char* argv[]) {
                         continue;   // if not at edge, don't handle it
 THIS_PIXEL_AT_EDGE:
 
-                        //calculate the gradient of the pixel
+                        // 计算像素梯度（用于判断边缘）
                         auto value = renderResult[index * 3 + 2];
                         if (value < 32) {
                             out[index] = 255;
@@ -317,7 +329,7 @@ THIS_PIXEL_AT_EDGE:
             timeelapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             std::cout << timeelapsed << std::endl;
 
-            //用着色的像素填充白色像素,这种事情应该只有前几帧需要
+            // 用着色像素填充白色像素（仅前几帧需要，避免明显白洞）
             if (frame < 3) {
                 if (frame == 0) {
                     //clean outliner because they mess up the floodfill
@@ -416,8 +428,8 @@ THIS_PIXEL_AT_EDGE:
 	}
 
 
-    // ========================  preprocess  寻找keypose  ==============================
-    // 0. 修改texture. 透明为0，非透明255. 然后更新到GPU. (透明与非透明的阈值为 LOW_ALPHA_THRESHOLD)
+    // ========================  preprocess  寻找 keypose  ==============================
+    // 0. 修改 texture。透明=0，非透明=255，然后更新到 GPU（阈值为 LOW_ALPHA_THRESHOLD）
     for (auto& [Id, pixels_texture] : slotIndex2Pixels) {
         slotIndex2Pixels[Id] = convertToBinaryAlphaMask(std::move(pixels_texture));
     }
@@ -428,7 +440,7 @@ THIS_PIXEL_AT_EDGE:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, texture->width, texture->height, 0, GL_RED, GL_UNSIGNED_BYTE, pixels.get());
     }
 
-    //1.0 渲染restposeUV
+    // 1.0 渲染 rest pose 的 UV
     drawable.animationState->getData()->setDefaultMix(0.f);
     drawable.skeleton->setPosition(0.f, 0.f);
     drawable.skeleton->setToSetupPose();
@@ -441,11 +453,11 @@ THIS_PIXEL_AT_EDGE:
     sequence << restPoseUVmapPath << std::endl;
     save_to_file(restPose.get(), Renderer::SCR_WIDTH * Renderer::SCR_HEIGHT * 4, restPoseUVmapPath.c_str());
 
-    //1.1 mask
+    // 1.1 mask
     stbi_write_png((uvMapPath + std::string("/restPose@mask.png")).c_str(),
         Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT, 1, decodeUVToMask(restPose.get(), Renderer::SCR_WIDTH, Renderer::SCR_HEIGHT).get(), Renderer::SCR_WIDTH);
 
-    //1.2 渲染restpose controlNet输入
+    // 1.2 渲染 rest pose 的 ControlNet 输入
     Renderer::StartDrawCTRL();
     Renderer::Clear();
     std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
@@ -455,7 +467,16 @@ THIS_PIXEL_AT_EDGE:
     std::swap(drawable.attachmentName2Index, drawable.attachmentName2Index_group);
     Renderer::EndDrawCTRL();
 
+    const int maxIterations = 9;
+    const float minGainRatio = 0.015f;
+    const unsigned int minGain = 512;
+    unsigned int firstGain = 0;
+    int iteration = 0;
     for (std::unique_ptr<GLuint[]> uvPose = std::move(restPose), nextuvPose; uvPose; uvPose = std::move(nextuvPose)) {
+        iteration++;
+        if (iteration > maxIterations) {
+            break;  // 达到最大迭代次数
+        }
         
         // 2. 对于所有uvPose上出现过的uv，设为128   // 对于部件边缘的像素，因为不可靠，所以假设我们没画过，跳过设置，以求下次inpaint再画
         for (int i = 0; i < Renderer::SCR_HEIGHT; i++) {
@@ -526,8 +547,12 @@ THIS_PIXEL_AT_EDGE:
                 }
             }
         }
-        if (maxcount < 512) {
-            break;  //too few pixels
+        if (firstGain == 0) {
+            firstGain = maxcount;
+        }
+        unsigned int dynamicMinGain = std::max(minGain, static_cast<unsigned int>(firstGain * minGainRatio));
+        if (maxcount < dynamicMinGain) {
+            break;  // 本轮新增像素太少，收益已明显下降
         }
         std::string uvMappingPath = uvMapPath + std::string("/") + animName + "_" + std::to_string(animTime) + ".bin";
         sequence << uvMappingPath << std::endl;

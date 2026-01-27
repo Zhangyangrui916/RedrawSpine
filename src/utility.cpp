@@ -14,6 +14,7 @@ namespace {
 constexpr int kFilterWidth = 11;
 constexpr float kTwoSigmaSquare = 50.f;
 
+// Precompute a small Gaussian kernel for soft mask edges.
 const std::vector<float>& gaussianFilter() {
 	static std::vector<float> filter;
 	if (!filter.empty()) {
@@ -200,6 +201,7 @@ std::unique_ptr<GLubyte[]> decodeUVToMask(GLuint* uv, int width, int height)
 	std::unique_ptr<GLubyte[]> gray(new GLubyte[size]);
 	std::unique_ptr<GLubyte[]> output(new GLubyte[size]);
 
+	// 先得到硬 mask，再进行高斯模糊以获得更柔和的边缘
 	for (int i = 0; i < size; i++) {
 		gray[i] = uv[i] > 0 ? 255 : 0;
 		output[i] = 0;
@@ -244,6 +246,7 @@ std::unique_ptr<GLubyte[]> decodeUVToSlot(GLuint* uv, int width, int height)
 	int size = width * height;
 	std::unique_ptr<GLubyte[]> rgb(new GLubyte[size * 3]());
 
+	// 将 slotId 映射为可视化颜色（仅用于调试）
 	for (int i = 0; i < size; i++) {
 		GLuint Slot_V_U = uv[i];
 		GLubyte slot = static_cast<GLubyte>(Slot_V_U >> 24);
