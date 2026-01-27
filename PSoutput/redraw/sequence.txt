@@ -1,0 +1,5 @@
+C:/code/sdSpine2Spine/PSoutput/redraw/restPose.bin
+C:/code/sdSpine2Spine/PSoutput/redraw/action_3.099999.bin
+C:/code/sdSpine2Spine/PSoutput/redraw/action_2.600000.bin
+C:/code/sdSpine2Spine/PSoutput/redraw/angry_1.300000.bin
+C:/code/sdSpine2Spine/PSoutput/redraw/action_4.199998.bin

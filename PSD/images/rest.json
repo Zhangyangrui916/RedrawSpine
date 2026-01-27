@@ -1,0 +1,397 @@
+{ "skeleton": { "images": "C:/code/sdSpine2Spine/PSD/images/" },
+"PhotoshopToSpine": { "scale": 1, "padding": 0, "trim": false },
+"bones": [
+	{ "name": "root" }
+],
+"slots": [
+	{ "name": "hair_25", "bone": "root", "attachment": "hair_25" },
+	{ "name": "hair_24", "bone": "root", "attachment": "hair_24" },
+	{ "name": "hair_23", "bone": "root", "attachment": "hair_23" },
+	{ "name": "hair_22", "bone": "root", "attachment": "hair_22" },
+	{ "name": "hair_21", "bone": "root", "attachment": "hair_21" },
+	{ "name": "hair_19", "bone": "root", "attachment": "hair_19" },
+	{ "name": "L_arm", "bone": "root", "attachment": "L_arm" },
+	{ "name": "L_hand", "bone": "root", "attachment": "L_hand" },
+	{ "name": "L_fin_05", "bone": "root", "attachment": "L_fin_05" },
+	{ "name": "L_fin_04", "bone": "root", "attachment": "L_fin_04" },
+	{ "name": "L_fin_03", "bone": "root", "attachment": "L_fin_03" },
+	{ "name": "L_fin_02", "bone": "root", "attachment": "L_fin_02" },
+	{ "name": "L_fin_01", "bone": "root", "attachment": "L_fin_01" },
+	{ "name": "L_arm_lace", "bone": "root", "attachment": "L_arm_lace" },
+	{ "name": "L_arm_cloth", "bone": "root", "attachment": "L_arm_cloth" },
+	{ "name": "body_02", "bone": "root", "attachment": "body_02" },
+	{ "name": "L_bra_strap", "bone": "root", "attachment": "L_bra_strap" },
+	{ "name": "neck", "bone": "root", "attachment": "neck" },
+	{ "name": "neckt_collar", "bone": "root", "attachment": "neckt_collar" },
+	{ "name": "L_boob", "bone": "root", "attachment": "L_boob" },
+	{ "name": "R_boob", "bone": "root", "attachment": "R_boob" },
+	{ "name": "neckling", "bone": "root", "attachment": "neckling" },
+	{ "name": "body_cloth_02_lace_02", "bone": "root", "attachment": "body_cloth_02_lace_02" },
+	{ "name": "body_cloth_02_lace_01", "bone": "root", "attachment": "body_cloth_02_lace_01" },
+	{ "name": "body_cloth_02", "bone": "root", "attachment": "body_cloth_02" },
+	{ "name": "R_arm_01", "bone": "root", "attachment": "R_arm_01" },
+	{ "name": "bra_strap_02", "bone": "root", "attachment": "bra_strap_02" },
+	{ "name": "R_arm_01_cloth", "bone": "root", "attachment": "R_arm_01_cloth" },
+	{ "name": "bra_strap_01", "bone": "root", "attachment": "bra_strap_01" },
+	{ "name": "R_arm_02_cloth_02", "bone": "root", "attachment": "R_arm_02_cloth_02" },
+	{ "name": "R_arm_lace_02", "bone": "root", "attachment": "R_arm_lace_02" },
+	{ "name": "R_arm_02", "bone": "root", "attachment": "R_arm_02" },
+	{ "name": "R_arm_02_cloth_01", "bone": "root", "attachment": "R_arm_02_cloth_01" },
+	{ "name": "R_arm_lace_01", "bone": "root", "attachment": "R_arm_lace_01" },
+	{ "name": "weapon_ribbon_06", "bone": "root", "attachment": "weapon_ribbon_06" },
+	{ "name": "weapon_ribbon_05", "bone": "root", "attachment": "weapon_ribbon_05" },
+	{ "name": "weapon_ribbon_04", "bone": "root", "attachment": "weapon_ribbon_04" },
+	{ "name": "weapon_ribbon_03", "bone": "root", "attachment": "weapon_ribbon_03" },
+	{ "name": "weapon_ribbon_02", "bone": "root", "attachment": "weapon_ribbon_02" },
+	{ "name": "weapon", "bone": "root", "attachment": "weapon" },
+	{ "name": "weapon_ribbon_01", "bone": "root", "attachment": "weapon_ribbon_01" },
+	{ "name": "weapon_acc", "bone": "root", "attachment": "weapon_acc" },
+	{ "name": "L_body_cloth", "bone": "root", "attachment": "L_body_cloth" },
+	{ "name": "R_body_cloth", "bone": "root", "attachment": "R_body_cloth" },
+	{ "name": "skirt_back", "bone": "root", "attachment": "skirt_back" },
+	{ "name": "L_leg_01", "bone": "root", "attachment": "L_leg_01" },
+	{ "name": "L_leggings_lace", "bone": "root", "attachment": "L_leggings_lace" },
+	{ "name": "L_foot", "bone": "root", "attachment": "L_foot" },
+	{ "name": "L_leg_02", "bone": "root", "attachment": "L_leg_02" },
+	{ "name": "L_leggings", "bone": "root", "attachment": "L_leggings" },
+	{ "name": "body_01", "bone": "root", "attachment": "body_01" },
+	{ "name": "R_leg_01", "bone": "root", "attachment": "R_leg_01" },
+	{ "name": "R_leggings_lace", "bone": "root", "attachment": "R_leggings_lace" },
+	{ "name": "R_foot", "bone": "root", "attachment": "R_foot" },
+	{ "name": "R_leg_02", "bone": "root", "attachment": "R_leg_02" },
+	{ "name": "R_leggings", "bone": "root", "attachment": "R_leggings" },
+	{ "name": "skirt", "bone": "root", "attachment": "skirt" },
+	{ "name": "lace_04", "bone": "root", "attachment": "lace_04" },
+	{ "name": "lace_03", "bone": "root", "attachment": "lace_03" },
+	{ "name": "lace_02", "bone": "root", "attachment": "lace_02" },
+	{ "name": "lace_01", "bone": "root", "attachment": "lace_01" },
+	{ "name": "body_cloth_01", "bone": "root", "attachment": "body_cloth_01" },
+	{ "name": "L_ear", "bone": "root", "attachment": "L_ear" },
+	{ "name": "head", "bone": "root", "attachment": "head" },
+	{ "name": "mouth", "bone": "root", "attachment": "mouth" },
+	{ "name": "nose", "bone": "root", "attachment": "nose" },
+	{ "name": "L_eyebg", "bone": "root", "attachment": "L_eyebg" },
+	{ "name": "L_eyeball", "bone": "root", "attachment": "L_eyeball" },
+	{ "name": "L_eyelid_down", "bone": "root", "attachment": "L_eyelid_down" },
+	{ "name": "R_eyebg", "bone": "root", "attachment": "R_eyebg" },
+	{ "name": "R_eyeball", "bone": "root", "attachment": "R_eyeball" },
+	{ "name": "R_eyelid_down", "bone": "root", "attachment": "R_eyelid_down" },
+	{ "name": "R_eyelid_up", "bone": "root", "attachment": "R_eyelid_up" },
+	{ "name": "R_ear", "bone": "root", "attachment": "R_ear" },
+	{ "name": "hair_12", "bone": "root", "attachment": "hair_12" },
+	{ "name": "hair_ribbon_04", "bone": "root", "attachment": "hair_ribbon_04" },
+	{ "name": "hair_ribbon_03", "bone": "root", "attachment": "hair_ribbon_03" },
+	{ "name": "hair_ribbon_02", "bone": "root", "attachment": "hair_ribbon_02" },
+	{ "name": "hair_ribbon_01", "bone": "root", "attachment": "hair_ribbon_01" },
+	{ "name": "hair_flower", "bone": "root", "attachment": "hair_flower" },
+	{ "name": "hair_11", "bone": "root", "attachment": "hair_11" },
+	{ "name": "hair_10", "bone": "root", "attachment": "hair_10" },
+	{ "name": "hair_09", "bone": "root", "attachment": "hair_09" },
+	{ "name": "hair_08", "bone": "root", "attachment": "hair_08" },
+	{ "name": "hair_07", "bone": "root", "attachment": "hair_07" },
+	{ "name": "hair_06", "bone": "root", "attachment": "hair_06" },
+	{ "name": "hair_05", "bone": "root", "attachment": "hair_05" },
+	{ "name": "L_eyebrow_idle_delight_surp", "bone": "root", "attachment": "L_eyebrow_idle_delight_surp" },
+	{ "name": "R_eyebrow_idle_delight_surp", "bone": "root", "attachment": "R_eyebrow_idle_delight_surp" },
+	{ "name": "R_hand", "bone": "root", "attachment": "R_hand" },
+	{ "name": "R_fin_04_02", "bone": "root", "attachment": "R_fin_04_02" },
+	{ "name": "R_fin_04_01", "bone": "root", "attachment": "R_fin_04_01" },
+	{ "name": "R_fin_03_02", "bone": "root", "attachment": "R_fin_03_02" },
+	{ "name": "R_fin_03_01", "bone": "root", "attachment": "R_fin_03_01" },
+	{ "name": "R_fin_02", "bone": "root", "attachment": "R_fin_02" },
+	{ "name": "R_fin_01", "bone": "root", "attachment": "R_fin_01" }
+],
+"skins": {
+	"default": {
+		"hair_25": {
+			"hair_25": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_24": {
+			"hair_24": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_23": {
+			"hair_23": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_22": {
+			"hair_22": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_21": {
+			"hair_21": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_19": {
+			"hair_19": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_arm": {
+			"L_arm": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_hand": {
+			"L_hand": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_fin_05": {
+			"L_fin_05": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_fin_04": {
+			"L_fin_04": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_fin_03": {
+			"L_fin_03": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_fin_02": {
+			"L_fin_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_fin_01": {
+			"L_fin_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_arm_lace": {
+			"L_arm_lace": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_arm_cloth": {
+			"L_arm_cloth": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_02": {
+			"body_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_bra_strap": {
+			"L_bra_strap": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"neck": {
+			"neck": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"neckt_collar": {
+			"neckt_collar": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_boob": {
+			"L_boob": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_boob": {
+			"R_boob": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"neckling": {
+			"neckling": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_cloth_02_lace_02": {
+			"body_cloth_02_lace_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_cloth_02_lace_01": {
+			"body_cloth_02_lace_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_cloth_02": {
+			"body_cloth_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_01": {
+			"R_arm_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"bra_strap_02": {
+			"bra_strap_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_01_cloth": {
+			"R_arm_01_cloth": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"bra_strap_01": {
+			"bra_strap_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_02_cloth_02": {
+			"R_arm_02_cloth_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_lace_02": {
+			"R_arm_lace_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_02": {
+			"R_arm_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_02_cloth_01": {
+			"R_arm_02_cloth_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_arm_lace_01": {
+			"R_arm_lace_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_06": {
+			"weapon_ribbon_06": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_05": {
+			"weapon_ribbon_05": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_04": {
+			"weapon_ribbon_04": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_03": {
+			"weapon_ribbon_03": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_02": {
+			"weapon_ribbon_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon": {
+			"weapon": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_ribbon_01": {
+			"weapon_ribbon_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"weapon_acc": {
+			"weapon_acc": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_body_cloth": {
+			"L_body_cloth": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_body_cloth": {
+			"R_body_cloth": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"skirt_back": {
+			"skirt_back": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_leg_01": {
+			"L_leg_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_leggings_lace": {
+			"L_leggings_lace": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_foot": {
+			"L_foot": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_leg_02": {
+			"L_leg_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_leggings": {
+			"L_leggings": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_01": {
+			"body_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_leg_01": {
+			"R_leg_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_leggings_lace": {
+			"R_leggings_lace": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_foot": {
+			"R_foot": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_leg_02": {
+			"R_leg_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_leggings": {
+			"R_leggings": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"skirt": {
+			"skirt": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"lace_04": {
+			"lace_04": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"lace_03": {
+			"lace_03": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"lace_02": {
+			"lace_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"lace_01": {
+			"lace_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"body_cloth_01": {
+			"body_cloth_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_ear": {
+			"L_ear": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"head": {
+			"head": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"mouth": {
+			"mouth": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"nose": {
+			"nose": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_eyebg": {
+			"L_eyebg": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_eyeball": {
+			"L_eyeball": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_eyelid_down": {
+			"L_eyelid_down": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_eyebg": {
+			"R_eyebg": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_eyeball": {
+			"R_eyeball": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_eyelid_down": {
+			"R_eyelid_down": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_eyelid_up": {
+			"R_eyelid_up": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_ear": {
+			"R_ear": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_12": {
+			"hair_12": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_ribbon_04": {
+			"hair_ribbon_04": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_ribbon_03": {
+			"hair_ribbon_03": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_ribbon_02": {
+			"hair_ribbon_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_ribbon_01": {
+			"hair_ribbon_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_flower": {
+			"hair_flower": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_11": {
+			"hair_11": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_10": {
+			"hair_10": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_09": {
+			"hair_09": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_08": {
+			"hair_08": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_07": {
+			"hair_07": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_06": {
+			"hair_06": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"hair_05": {
+			"hair_05": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"L_eyebrow_idle_delight_surp": {
+			"L_eyebrow_idle_delight_surp": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_eyebrow_idle_delight_surp": {
+			"R_eyebrow_idle_delight_surp": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_hand": {
+			"R_hand": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_04_02": {
+			"R_fin_04_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_04_01": {
+			"R_fin_04_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_03_02": {
+			"R_fin_03_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_03_01": {
+			"R_fin_03_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_02": {
+			"R_fin_02": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		},
+		"R_fin_01": {
+			"R_fin_01": { "x": 928, "y": -1144, "width": 1856, "height": 2288 }
+		}
+	}
+},
+"animations": { "animation": {} }
+}

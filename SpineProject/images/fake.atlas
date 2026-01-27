@@ -1,0 +1,1200 @@
+body_01.png
+size: 317,312
+filter:Linear,Linear
+body_01
+bounds: 0,0,317,312
+
+body_02.png
+size: 307,389
+filter:Linear,Linear
+body_02
+bounds: 0,0,307,389
+
+body_cloth_01.png
+size: 493,543
+filter:Linear,Linear
+body_cloth_01
+bounds: 0,0,493,543
+
+body_cloth_02.png
+size: 295,263
+filter:Linear,Linear
+body_cloth_02
+bounds: 0,0,295,263
+
+body_cloth_02_lace_01.png
+size: 170,105
+filter:Linear,Linear
+body_cloth_02_lace_01
+bounds: 0,0,170,105
+
+body_cloth_02_lace_02.png
+size: 109,72
+filter:Linear,Linear
+body_cloth_02_lace_02
+bounds: 0,0,109,72
+
+bra_strap_01.png
+size: 30,166
+filter:Linear,Linear
+bra_strap_01
+bounds: 0,0,30,166
+
+bra_strap_02.png
+size: 53,130
+filter:Linear,Linear
+bra_strap_02
+bounds: 0,0,53,130
+
+effect_01_01.png
+size: 381,340
+filter:Linear,Linear
+effect_01_01
+bounds: 0,0,381,340
+
+effect_02_01.png
+size: 152,204
+filter:Linear,Linear
+effect_02_01
+bounds: 0,0,152,204
+
+effect_02_02.png
+size: 96,124
+filter:Linear,Linear
+effect_02_02
+bounds: 0,0,96,124
+
+face_highlight_01.png
+size: 9,8
+filter:Linear,Linear
+face_highlight_01
+bounds: 0,0,9,8
+
+face_highlight_02.png
+size: 10,7
+filter:Linear,Linear
+face_highlight_02
+bounds: 0,0,10,7
+
+hairpin.png
+size: 63,81
+filter:Linear,Linear
+hairpin
+bounds: 0,0,63,81
+
+hairpin_shadow.png
+size: 46,76
+filter:Linear,Linear
+hairpin_shadow
+bounds: 0,0,46,76
+
+hair_01.png
+size: 75,160
+filter:Linear,Linear
+hair_01
+bounds: 0,0,75,160
+
+hair_02.png
+size: 52,194
+filter:Linear,Linear
+hair_02
+bounds: 0,0,52,194
+
+hair_03_01.png
+size: 209,428
+filter:Linear,Linear
+hair_03_01
+bounds: 0,0,209,428
+
+hair_03_02.png
+size: 65,206
+filter:Linear,Linear
+hair_03_02
+bounds: 0,0,65,206
+
+hair_04_01.png
+size: 55,81
+filter:Linear,Linear
+hair_04_01
+bounds: 0,0,55,81
+
+hair_04_02.png
+size: 89,92
+filter:Linear,Linear
+hair_04_02
+bounds: 0,0,89,92
+
+hair_04_03.png
+size: 92,170
+filter:Linear,Linear
+hair_04_03
+bounds: 0,0,92,170
+
+hair_04_04.png
+size: 92,344
+filter:Linear,Linear
+hair_04_04
+bounds: 0,0,92,344
+
+hair_05.png
+size: 43,209
+filter:Linear,Linear
+hair_05
+bounds: 0,0,43,209
+
+hair_06.png
+size: 127,145
+filter:Linear,Linear
+hair_06
+bounds: 0,0,127,145
+
+hair_07.png
+size: 112,162
+filter:Linear,Linear
+hair_07
+bounds: 0,0,112,162
+
+hair_08.png
+size: 81,170
+filter:Linear,Linear
+hair_08
+bounds: 0,0,81,170
+
+hair_09.png
+size: 45,99
+filter:Linear,Linear
+hair_09
+bounds: 0,0,45,99
+
+hair_10.png
+size: 163,138
+filter:Linear,Linear
+hair_10
+bounds: 0,0,163,138
+
+hair_11.png
+size: 53,203
+filter:Linear,Linear
+hair_11
+bounds: 0,0,53,203
+
+hair_12.png
+size: 197,93
+filter:Linear,Linear
+hair_12
+bounds: 0,0,197,93
+
+hair_13.png
+size: 198,226
+filter:Linear,Linear
+hair_13
+bounds: 0,0,198,226
+
+hair_14.png
+size: 185,275
+filter:Linear,Linear
+hair_14
+bounds: 0,0,185,275
+
+hair_15.png
+size: 214,251
+filter:Linear,Linear
+hair_15
+bounds: 0,0,214,251
+
+hair_16.png
+size: 217,323
+filter:Linear,Linear
+hair_16
+bounds: 0,0,217,323
+
+hair_17_01.png
+size: 106,94
+filter:Linear,Linear
+hair_17_01
+bounds: 0,0,106,94
+
+hair_17_02.png
+size: 77,23
+filter:Linear,Linear
+hair_17_02
+bounds: 0,0,77,23
+
+hair_18.png
+size: 313,149
+filter:Linear,Linear
+hair_18
+bounds: 0,0,313,149
+
+hair_19.png
+size: 479,520
+filter:Linear,Linear
+hair_19
+bounds: 0,0,479,520
+
+hair_20.png
+size: 250,238
+filter:Linear,Linear
+hair_20
+bounds: 0,0,250,238
+
+hair_21.png
+size: 346,149
+filter:Linear,Linear
+hair_21
+bounds: 0,0,346,149
+
+hair_22.png
+size: 390,337
+filter:Linear,Linear
+hair_22
+bounds: 0,0,390,337
+
+hair_23.png
+size: 136,244
+filter:Linear,Linear
+hair_23
+bounds: 0,0,136,244
+
+hair_24.png
+size: 459,471
+filter:Linear,Linear
+hair_24
+bounds: 0,0,459,471
+
+hair_25.png
+size: 144,289
+filter:Linear,Linear
+hair_25
+bounds: 0,0,144,289
+
+hair_26.png
+size: 85,41
+filter:Linear,Linear
+hair_26
+bounds: 0,0,85,41
+
+hair_flower.png
+size: 116,113
+filter:Linear,Linear
+hair_flower
+bounds: 0,0,116,113
+
+hair_ribbon_01.png
+size: 46,61
+filter:Linear,Linear
+hair_ribbon_01
+bounds: 0,0,46,61
+
+hair_ribbon_02.png
+size: 76,57
+filter:Linear,Linear
+hair_ribbon_02
+bounds: 0,0,76,57
+
+hair_ribbon_03.png
+size: 193,141
+filter:Linear,Linear
+hair_ribbon_03
+bounds: 0,0,193,141
+
+hair_ribbon_04.png
+size: 137,260
+filter:Linear,Linear
+hair_ribbon_04
+bounds: 0,0,137,260
+
+hair_shadow.png
+size: 198,164
+filter:Linear,Linear
+hair_shadow
+bounds: 0,0,198,164
+
+head.png
+size: 207,234
+filter:Linear,Linear
+head
+bounds: 0,0,207,234
+
+lace_01.png
+size: 200,143
+filter:Linear,Linear
+lace_01
+bounds: 0,0,200,143
+
+lace_02.png
+size: 221,185
+filter:Linear,Linear
+lace_02
+bounds: 0,0,221,185
+
+lace_03.png
+size: 235,121
+filter:Linear,Linear
+lace_03
+bounds: 0,0,235,121
+
+lace_04.png
+size: 265,90
+filter:Linear,Linear
+lace_04
+bounds: 0,0,265,90
+
+L_arm.png
+size: 137,200
+filter:Linear,Linear
+L_arm
+bounds: 0,0,137,200
+
+L_arm_02_add.png
+size: 91,141
+filter:Linear,Linear
+L_arm_02_add
+bounds: 0,0,91,141
+
+L_arm_cloth.png
+size: 196,626
+filter:Linear,Linear
+L_arm_cloth
+bounds: 0,0,196,626
+
+L_arm_cloth_01_add.png
+size: 129,371
+filter:Linear,Linear
+L_arm_cloth_01_add
+bounds: 0,0,129,371
+
+L_arm_cloth_02_add.png
+size: 135,417
+filter:Linear,Linear
+L_arm_cloth_02_add
+bounds: 0,0,135,417
+
+L_arm_lace.png
+size: 98,249
+filter:Linear,Linear
+L_arm_lace
+bounds: 0,0,98,249
+
+L_arm_lace_01_add.png
+size: 115,260
+filter:Linear,Linear
+L_arm_lace_01_add
+bounds: 0,0,115,260
+
+L_arm_lace_02_add.png
+size: 98,228
+filter:Linear,Linear
+L_arm_lace_02_add
+bounds: 0,0,98,228
+
+L_arm_shadow_add.png
+size: 109,332
+filter:Linear,Linear
+L_arm_shadow_add
+bounds: 0,0,109,332
+
+L_balltouch.png
+size: 86,72
+filter:Linear,Linear
+L_balltouch
+bounds: 0,0,86,72
+
+L_balltouch_shy.png
+size: 86,72
+filter:Linear,Linear
+L_balltouch_shy
+bounds: 0,0,86,72
+
+L_body_cloth.png
+size: 542,638
+filter:Linear,Linear
+L_body_cloth
+bounds: 0,0,542,638
+
+L_boob.png
+size: 158,141
+filter:Linear,Linear
+L_boob
+bounds: 0,0,158,141
+
+L_boob_shadow_01.png
+size: 10,20
+filter:Linear,Linear
+L_boob_shadow_01
+bounds: 0,0,10,20
+
+L_boob_shadow_02.png
+size: 10,16
+filter:Linear,Linear
+L_boob_shadow_02
+bounds: 0,0,10,16
+
+L_boob_shadow_03.png
+size: 14,17
+filter:Linear,Linear
+L_boob_shadow_03
+bounds: 0,0,14,17
+
+L_bra_strap.png
+size: 78,81
+filter:Linear,Linear
+L_bra_strap
+bounds: 0,0,78,81
+
+L_ear.png
+size: 53,39
+filter:Linear,Linear
+L_ear
+bounds: 0,0,53,39
+
+L_eyeball.png
+size: 37,37
+filter:Linear,Linear
+L_eyeball
+bounds: 0,0,37,37
+
+L_eyeball_highlight_01.png
+size: 12,10
+filter:Linear,Linear
+L_eyeball_highlight_01
+bounds: 0,0,12,10
+
+L_eyeball_highlight_01_shy.png
+size: 5,7
+filter:Linear,Linear
+L_eyeball_highlight_01_shy
+bounds: 0,0,5,7
+
+L_eyeball_highlight_02.png
+size: 7,7
+filter:Linear,Linear
+L_eyeball_highlight_02
+bounds: 0,0,7,7
+
+L_eyeball_highlight_02_shy.png
+size: 15,15
+filter:Linear,Linear
+L_eyeball_highlight_02_shy
+bounds: 0,0,15,15
+
+L_eyeball_highlight_03_shy.png
+size: 9,12
+filter:Linear,Linear
+L_eyeball_highlight_03_shy
+bounds: 0,0,9,12
+
+L_eyebg.png
+size: 52,35
+filter:Linear,Linear
+L_eyebg
+bounds: 0,0,52,35
+
+L_eyebrow_02.png
+size: 39,17
+filter:Linear,Linear
+L_eyebrow_02
+bounds: 0,0,39,17
+
+L_eyebrow_03.png
+size: 67,21
+filter:Linear,Linear
+L_eyebrow_03
+bounds: 0,0,67,21
+
+L_eyebrow_04.png
+size: 43,17
+filter:Linear,Linear
+L_eyebrow_04
+bounds: 0,0,43,17
+
+L_eyebrow_05.png
+size: 26,18
+filter:Linear,Linear
+L_eyebrow_05
+bounds: 0,0,26,18
+
+L_eyebrow_idle_delight_surp.png
+size: 28,29
+filter:Linear,Linear
+L_eyebrow_idle_delight_surp
+bounds: 0,0,28,29
+
+L_eyebrow_no_angry_shy_worry.png
+size: 40,16
+filter:Linear,Linear
+L_eyebrow_no_angry_shy_worry
+bounds: 0,0,40,16
+
+L_eyelid_down.png
+size: 45,34
+filter:Linear,Linear
+L_eyelid_down
+bounds: 0,0,45,34
+
+L_eyelid_up.png
+size: 66,40
+filter:Linear,Linear
+L_eyelid_up
+bounds: 0,0,66,40
+
+L_eye_01_delight.png
+size: 61,28
+filter:Linear,Linear
+L_eye_01_delight
+bounds: 0,0,61,28
+
+L_eye_02_delight.png
+size: 53,29
+filter:Linear,Linear
+L_eye_02_delight
+bounds: 0,0,53,29
+
+L_eye_close_01.png
+size: 58,31
+filter:Linear,Linear
+L_eye_close_01
+bounds: 0,0,58,31
+
+L_eye_close_02.png
+size: 55,25
+filter:Linear,Linear
+L_eye_close_02
+bounds: 0,0,55,25
+
+L_fin_01.png
+size: 67,29
+filter:Linear,Linear
+L_fin_01
+bounds: 0,0,67,29
+
+L_fin_01_add.png
+size: 69,42
+filter:Linear,Linear
+L_fin_01_add
+bounds: 0,0,69,42
+
+L_fin_02.png
+size: 92,31
+filter:Linear,Linear
+L_fin_02
+bounds: 0,0,92,31
+
+L_fin_02_01_add_02.png
+size: 32,35
+filter:Linear,Linear
+L_fin_02_01_add_02
+bounds: 0,0,32,35
+
+L_fin_02_02_add_02.png
+size: 31,21
+filter:Linear,Linear
+L_fin_02_02_add_02
+bounds: 0,0,31,21
+
+L_fin_02_add.png
+size: 94,37
+filter:Linear,Linear
+L_fin_02_add
+bounds: 0,0,94,37
+
+L_fin_03.png
+size: 89,38
+filter:Linear,Linear
+L_fin_03
+bounds: 0,0,89,38
+
+L_fin_03_add.png
+size: 100,48
+filter:Linear,Linear
+L_fin_03_add
+bounds: 0,0,100,48
+
+L_fin_03_add_02.png
+size: 29,38
+filter:Linear,Linear
+L_fin_03_add_02
+bounds: 0,0,29,38
+
+L_fin_04.png
+size: 81,29
+filter:Linear,Linear
+L_fin_04
+bounds: 0,0,81,29
+
+L_fin_04_add.png
+size: 85,46
+filter:Linear,Linear
+L_fin_04_add
+bounds: 0,0,85,46
+
+L_fin_04_add_02.png
+size: 32,32
+filter:Linear,Linear
+L_fin_04_add_02
+bounds: 0,0,32,32
+
+L_fin_05.png
+size: 59,27
+filter:Linear,Linear
+L_fin_05
+bounds: 0,0,59,27
+
+L_foot.png
+size: 87,239
+filter:Linear,Linear
+L_foot
+bounds: 0,0,87,239
+
+L_hand.png
+size: 84,68
+filter:Linear,Linear
+L_hand
+bounds: 0,0,84,68
+
+L_hand_add.png
+size: 83,64
+filter:Linear,Linear
+L_hand_add
+bounds: 0,0,83,64
+
+L_hand_add_02.png
+size: 83,86
+filter:Linear,Linear
+L_hand_add_02
+bounds: 0,0,83,86
+
+L_hand_shadow_add.png
+size: 152,98
+filter:Linear,Linear
+L_hand_shadow_add
+bounds: 0,0,152,98
+
+L_leggings.png
+size: 140,301
+filter:Linear,Linear
+L_leggings
+bounds: 0,0,140,301
+
+L_leggings_lace.png
+size: 161,125
+filter:Linear,Linear
+L_leggings_lace
+bounds: 0,0,161,125
+
+L_leg_01.png
+size: 138,330
+filter:Linear,Linear
+L_leg_01
+bounds: 0,0,138,330
+
+L_leg_02.png
+size: 189,588
+filter:Linear,Linear
+L_leg_02
+bounds: 0,0,189,588
+
+L_leg_shadow_01.png
+size: 131,557
+filter:Linear,Linear
+L_leg_shadow_01
+bounds: 0,0,131,557
+
+L_leg_shadow_02.png
+size: 196,399
+filter:Linear,Linear
+L_leg_shadow_02
+bounds: 0,0,196,399
+
+mouth.png
+size: 49,32
+filter:Linear,Linear
+mouth
+bounds: 0,0,49,32
+
+mouth_angry.png
+size: 30,18
+filter:Linear,Linear
+mouth_angry
+bounds: 0,0,30,18
+
+mouth_delight.png
+size: 50,32
+filter:Linear,Linear
+mouth_delight
+bounds: 0,0,50,32
+
+mouth_no.png
+size: 38,28
+filter:Linear,Linear
+mouth_no
+bounds: 0,0,38,28
+
+mouth_shy.png
+size: 30,18
+filter:Linear,Linear
+mouth_shy
+bounds: 0,0,30,18
+
+mouth_smile.png
+size: 50,32
+filter:Linear,Linear
+mouth_smile
+bounds: 0,0,50,32
+
+mouth_surp.png
+size: 19,24
+filter:Linear,Linear
+mouth_surp
+bounds: 0,0,19,24
+
+mouth_worry.png
+size: 30,18
+filter:Linear,Linear
+mouth_worry
+bounds: 0,0,30,18
+
+neck.png
+size: 87,128
+filter:Linear,Linear
+neck
+bounds: 0,0,87,128
+
+neckling.png
+size: 63,67
+filter:Linear,Linear
+neckling
+bounds: 0,0,63,67
+
+neckt_collar.png
+size: 181,122
+filter:Linear,Linear
+neckt_collar
+bounds: 0,0,181,122
+
+nose.png
+size: 31,40
+filter:Linear,Linear
+nose
+bounds: 0,0,31,40
+
+R_arm_01.png
+size: 103,369
+filter:Linear,Linear
+R_arm_01
+bounds: 0,0,103,369
+
+R_arm_01_cloth.png
+size: 105,334
+filter:Linear,Linear
+R_arm_01_cloth
+bounds: 0,0,105,334
+
+R_arm_02.png
+size: 198,218
+filter:Linear,Linear
+R_arm_02
+bounds: 0,0,198,218
+
+R_arm_02_cloth_01.png
+size: 371,956
+filter:Linear,Linear
+R_arm_02_cloth_01
+bounds: 0,0,371,956
+
+R_arm_02_cloth_02.png
+size: 200,576
+filter:Linear,Linear
+R_arm_02_cloth_02
+bounds: 0,0,200,576
+
+R_arm_02_shadow.png
+size: 307,582
+filter:Linear,Linear
+R_arm_02_shadow
+bounds: 0,0,307,582
+
+R_arm_lace_01.png
+size: 136,254
+filter:Linear,Linear
+R_arm_lace_01
+bounds: 0,0,136,254
+
+R_arm_lace_02.png
+size: 130,257
+filter:Linear,Linear
+R_arm_lace_02
+bounds: 0,0,130,257
+
+R_balltouch.png
+size: 98,90
+filter:Linear,Linear
+R_balltouch
+bounds: 0,0,98,90
+
+R_balltouch_shy.png
+size: 98,90
+filter:Linear,Linear
+R_balltouch_shy
+bounds: 0,0,98,90
+
+R_body_cloth.png
+size: 183,627
+filter:Linear,Linear
+R_body_cloth
+bounds: 0,0,183,627
+
+R_boob.png
+size: 163,146
+filter:Linear,Linear
+R_boob
+bounds: 0,0,163,146
+
+R_ear.png
+size: 41,80
+filter:Linear,Linear
+R_ear
+bounds: 0,0,41,80
+
+R_ear_shadow_01.png
+size: 37,72
+filter:Linear,Linear
+R_ear_shadow_01
+bounds: 0,0,37,72
+
+R_ear_shadow_02.png
+size: 37,55
+filter:Linear,Linear
+R_ear_shadow_02
+bounds: 0,0,37,55
+
+R_eyeball.png
+size: 34,40
+filter:Linear,Linear
+R_eyeball
+bounds: 0,0,34,40
+
+R_eyeball_highlight_01.png
+size: 7,5
+filter:Linear,Linear
+R_eyeball_highlight_01
+bounds: 0,0,7,5
+
+R_eyeball_highlight_01_shy.png
+size: 10,12
+filter:Linear,Linear
+R_eyeball_highlight_01_shy
+bounds: 0,0,10,12
+
+R_eyeball_highlight_02.png
+size: 12,10
+filter:Linear,Linear
+R_eyeball_highlight_02
+bounds: 0,0,12,10
+
+R_eyeball_highlight_02_shy.png
+size: 15,20
+filter:Linear,Linear
+R_eyeball_highlight_02_shy
+bounds: 0,0,15,20
+
+R_eyebg.png
+size: 54,48
+filter:Linear,Linear
+R_eyebg
+bounds: 0,0,54,48
+
+R_eyebrow_02.png
+size: 55,32
+filter:Linear,Linear
+R_eyebrow_02
+bounds: 0,0,55,32
+
+R_eyebrow_03.png
+size: 64,47
+filter:Linear,Linear
+R_eyebrow_03
+bounds: 0,0,64,47
+
+R_eyebrow_04.png
+size: 35,28
+filter:Linear,Linear
+R_eyebrow_04
+bounds: 0,0,35,28
+
+R_eyebrow_05.png
+size: 7,27
+filter:Linear,Linear
+R_eyebrow_05
+bounds: 0,0,7,27
+
+R_eyebrow_idle_delight_surp.png
+size: 52,11
+filter:Linear,Linear
+R_eyebrow_idle_delight_surp
+bounds: 0,0,52,11
+
+R_eyebrow_no_angry_shy_worry.png
+size: 49,37
+filter:Linear,Linear
+R_eyebrow_no_angry_shy_worry
+bounds: 0,0,49,37
+
+R_eyelid_down.png
+size: 61,56
+filter:Linear,Linear
+R_eyelid_down
+bounds: 0,0,61,56
+
+R_eyelid_up.png
+size: 81,77
+filter:Linear,Linear
+R_eyelid_up
+bounds: 0,0,81,77
+
+R_eye_01_delight.png
+size: 64,47
+filter:Linear,Linear
+R_eye_01_delight
+bounds: 0,0,64,47
+
+R_eye_02_delight.png
+size: 75,47
+filter:Linear,Linear
+R_eye_02_delight
+bounds: 0,0,75,47
+
+R_eye_close_01.png
+size: 84,39
+filter:Linear,Linear
+R_eye_close_01
+bounds: 0,0,84,39
+
+R_eye_close_02.png
+size: 81,48
+filter:Linear,Linear
+R_eye_close_02
+bounds: 0,0,81,48
+
+R_fin_01.png
+size: 48,58
+filter:Linear,Linear
+R_fin_01
+bounds: 0,0,48,58
+
+R_fin_02.png
+size: 64,67
+filter:Linear,Linear
+R_fin_02
+bounds: 0,0,64,67
+
+R_fin_03_01.png
+size: 41,51
+filter:Linear,Linear
+R_fin_03_01
+bounds: 0,0,41,51
+
+R_fin_03_02.png
+size: 59,38
+filter:Linear,Linear
+R_fin_03_02
+bounds: 0,0,59,38
+
+R_fin_04_01.png
+size: 25,47
+filter:Linear,Linear
+R_fin_04_01
+bounds: 0,0,25,47
+
+R_fin_04_02.png
+size: 47,53
+filter:Linear,Linear
+R_fin_04_02
+bounds: 0,0,47,53
+
+R_foot.png
+size: 86,247
+filter:Linear,Linear
+R_foot
+bounds: 0,0,86,247
+
+R_hand.png
+size: 72,100
+filter:Linear,Linear
+R_hand
+bounds: 0,0,72,100
+
+R_leggings.png
+size: 182,305
+filter:Linear,Linear
+R_leggings
+bounds: 0,0,182,305
+
+R_leggings_lace.png
+size: 174,131
+filter:Linear,Linear
+R_leggings_lace
+bounds: 0,0,174,131
+
+R_leg_01.png
+size: 244,323
+filter:Linear,Linear
+R_leg_01
+bounds: 0,0,244,323
+
+R_leg_02.png
+size: 277,542
+filter:Linear,Linear
+R_leg_02
+bounds: 0,0,277,542
+
+R_leg_shadow_01.png
+size: 149,292
+filter:Linear,Linear
+R_leg_shadow_01
+bounds: 0,0,149,292
+
+R_leg_shadow_02.png
+size: 223,103
+filter:Linear,Linear
+R_leg_shadow_02
+bounds: 0,0,223,103
+
+skirt.png
+size: 607,330
+filter:Linear,Linear
+skirt
+bounds: 0,0,607,330
+
+skirt_back.png
+size: 231,220
+filter:Linear,Linear
+skirt_back
+bounds: 0,0,231,220
+
+weapon.png
+size: 1004,1819
+filter:Linear,Linear
+weapon
+bounds: 0,0,1004,1819
+
+weapon_acc.png
+size: 78,101
+filter:Linear,Linear
+weapon_acc
+bounds: 0,0,78,101
+
+weapon_highlight_01.png
+size: 42,33
+filter:Linear,Linear
+weapon_highlight_01
+bounds: 0,0,42,33
+
+weapon_highlight_02.png
+size: 19,13
+filter:Linear,Linear
+weapon_highlight_02
+bounds: 0,0,19,13
+
+weapon_highlight_03.png
+size: 18,15
+filter:Linear,Linear
+weapon_highlight_03
+bounds: 0,0,18,15
+
+weapon_highlight_04.png
+size: 24,50
+filter:Linear,Linear
+weapon_highlight_04
+bounds: 0,0,24,50
+
+weapon_highlight_05.png
+size: 87,66
+filter:Linear,Linear
+weapon_highlight_05
+bounds: 0,0,87,66
+
+weapon_highlight_06.png
+size: 187,191
+filter:Linear,Linear
+weapon_highlight_06
+bounds: 0,0,187,191
+
+weapon_highlight_07.png
+size: 98,106
+filter:Linear,Linear
+weapon_highlight_07
+bounds: 0,0,98,106
+
+weapon_highlight_08.png
+size: 160,112
+filter:Linear,Linear
+weapon_highlight_08
+bounds: 0,0,160,112
+
+weapon_highlight_09.png
+size: 106,106
+filter:Linear,Linear
+weapon_highlight_09
+bounds: 0,0,106,106
+
+weapon_highlight_10.png
+size: 30,86
+filter:Linear,Linear
+weapon_highlight_10
+bounds: 0,0,30,86
+
+weapon_highlight_11.png
+size: 163,141
+filter:Linear,Linear
+weapon_highlight_11
+bounds: 0,0,163,141
+
+weapon_highlight_12.png
+size: 106,115
+filter:Linear,Linear
+weapon_highlight_12
+bounds: 0,0,106,115
+
+weapon_ribbon_01.png
+size: 127,132
+filter:Linear,Linear
+weapon_ribbon_01
+bounds: 0,0,127,132
+
+weapon_ribbon_02.png
+size: 207,533
+filter:Linear,Linear
+weapon_ribbon_02
+bounds: 0,0,207,533
+
+weapon_ribbon_03.png
+size: 333,843
+filter:Linear,Linear
+weapon_ribbon_03
+bounds: 0,0,333,843
+
+weapon_ribbon_04.png
+size: 95,126
+filter:Linear,Linear
+weapon_ribbon_04
+bounds: 0,0,95,126
+
+weapon_ribbon_05.png
+size: 215,801
+filter:Linear,Linear
+weapon_ribbon_05
+bounds: 0,0,215,801
+
+weapon_ribbon_06.png
+size: 101,579
+filter:Linear,Linear
+weapon_ribbon_06
+bounds: 0,0,101,579
+
+weapon_shadow.png
+size: 108,294
+filter:Linear,Linear
+weapon_shadow
+bounds: 0,0,108,294
+
