@@ -519,6 +519,7 @@ THIS_PIXEL_AT_EDGE:
 
         Renderer::shader->setBool("u_OnlyUndrawn", true);
         // 3.更新texture到GPU，再渲染每帧。只渲染没画过的部分
+        // red 语义：未绘制=1.0(255)，已绘制=0.5(128)；shader 中 u_OnlyUndrawn 只保留 red>=0.55 的像素
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         for (auto& [_, pixels_texture] : slotIndex2Pixels) {
             auto& [pixels, texture] = pixels_texture;
