@@ -1,1 +1,8 @@
-﻿build
+﻿# 忽略 build 下的所有内容
+build/*
+
+# 但不忽略 Release 目录本身
+!build/Release/
+
+# 也不忽略 Release 里的文件
+!build/Release/**
